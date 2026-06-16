@@ -36,7 +36,14 @@ jobs:
 
       - name: Build
         run: |
-          echo "Running build..."
+          echo "=== Diagnostics ==="
+          node -v
+          npm -v
+          pwd
+          ls -la
+          echo "=== Check Vite Installation ==="
+          npm list --depth=1 || true
+          echo "=== Run Vite Build ==="
           npm run build
 
       - name: Setup Pages
