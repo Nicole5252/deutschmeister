@@ -290,3 +290,31 @@
   font-weight: 800;
   line-height: 1;
 }
+
+/* Card Favorite Button */
+.card-fav-btn {
+  position: absolute;
+  top: var(--space-4);
+  right: calc(var(--space-4) + 44px);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.card-fav-btn:hover {
+  background: var(--glass-bg-hover);
+  color: var(--warning);
+  transform: scale(1.05);
+}
+
+.card-fav-btn.active {
+  color: var(--warning);
+}

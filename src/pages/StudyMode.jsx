@@ -7,7 +7,7 @@ import { calculateNextReview, getDueCards, getNewCards } from '../utils/srs';
 import { speak } from '../utils/helpers';
 import {
   ArrowLeft, Volume2, RotateCcw, ChevronLeft, ChevronRight,
-  Trophy, Home, BookOpen, X
+  Trophy, Home, BookOpen, X, Star
 } from 'lucide-react';
 import './StudyMode.css';
 
@@ -18,7 +18,7 @@ const GRADE_CONFIG = [
   { grade: 3, label: '輕鬆', labelEn: 'Easy', color: 'var(--success)', bg: 'rgba(52,211,153,0.15)' },
 ];
 
-function FlipCard({ card, isFlipped, onFlip, onSpeak, settings }) {
+function FlipCard({ card, isFlipped, onFlip, onSpeak, settings, onToggleFavorite }) {
   const articleColors = { der: '#818cf8', die: '#f472b6', das: '#34d399' };
 
   return (
@@ -48,6 +48,15 @@ function FlipCard({ card, isFlipped, onFlip, onSpeak, settings }) {
             >
               <Volume2 size={18} />
             </button>
+            <button
+              className={`card-fav-btn ${card.isFavorite ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(card);
+              }}
+            >
+              <Star size={18} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
+            </button>
             <div className="card-hint text-muted">點擊翻轉</div>
           </div>
         </div>
@@ -66,6 +75,15 @@ function FlipCard({ card, isFlipped, onFlip, onSpeak, settings }) {
             {card.notes && (
               <div className="card-notes text-muted" style={{ fontSize: '0.85rem' }}>{card.notes}</div>
             )}
+            <button
+              className={`card-fav-btn ${card.isFavorite ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(card);
+              }}
+            >
+              <Star size={18} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
+            </button>
           </div>
         </div>
       </motion.div>
@@ -73,14 +91,14 @@ function FlipCard({ card, isFlipped, onFlip, onSpeak, settings }) {
   );
 }
 
-function FillBlankMode({ card, onGrade, onSpeak }) {
+function FillBlankMode({ card, onGrade, onSpeak, onToggleFavorite }) {
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const isCorrect = answer.trim().toLowerCase() === card.german.trim().toLowerCase();
 
   return (
     <div className="fill-blank-mode">
-      <div className="card card-body text-center" style={{ marginBottom: 24 }}>
+      <div className="card card-body text-center" style={{ marginBottom: 24, position: 'relative' }}>
         <div className="card-lang-label">中文</div>
         <div className="card-word" style={{ fontSize: '2.5rem', marginBottom: 16 }}>{card.chinese}</div>
         {card.example && (
@@ -88,6 +106,16 @@ function FillBlankMode({ card, onGrade, onSpeak }) {
             <div className="example-text text-secondary">{card.example?.replace(card.german, '_____')}</div>
           </div>
         )}
+        <button
+          className={`card-fav-btn ${card.isFavorite ? 'active' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(card);
+          }}
+          style={{ top: '16px', right: '16px' }}
+        >
+          <Star size={18} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
+        </button>
       </div>
 
       <div className="fill-blank-input-area">
@@ -167,6 +195,12 @@ export default function StudyMode() {
   }, [deckId]);
 
   const currentCard = queue[currentIdx];
+
+  const handleToggleFavorite = useCallback((card) => {
+    const updated = { ...card, isFavorite: !card.isFavorite };
+    saveCard(updated);
+    setQueue(prev => prev.map(c => c.id === card.id ? updated : c));
+  }, []);
 
   const handleGrade = useCallback((grade) => {
     if (!currentCard) return;
@@ -309,6 +343,7 @@ export default function StudyMode() {
                   onFlip={() => setIsFlipped(p => !p)}
                   onSpeak={speak}
                   settings={settings}
+                  onToggleFavorite={handleToggleFavorite}
                 />
                 {/* Grade buttons (show after flip) */}
                 <AnimatePresence>
@@ -343,6 +378,7 @@ export default function StudyMode() {
                 card={currentCard}
                 onGrade={handleGrade}
                 onSpeak={speak}
+                onToggleFavorite={handleToggleFavorite}
               />
             )}
           </motion.div>

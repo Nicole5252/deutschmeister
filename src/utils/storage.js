@@ -219,7 +219,23 @@ export function deleteDeck(deckId) {
 // ---- Cards ----
 export function getCards(deckId) {
   const all = get(STORAGE_KEYS.CARDS) || [];
-  return deckId ? all.filter(c => c.deckId === deckId) : all;
+  let changed = false;
+  const migrated = all.map(c => {
+    if (c.srs && c.srs.lastReview && c.srs.repetitions === 0 && c.isDifficult === undefined) {
+      changed = true;
+      return { ...c, isDifficult: true };
+    }
+    return c;
+  });
+  if (changed) {
+    set(STORAGE_KEYS.CARDS, migrated);
+    migrated.forEach(c => {
+      if (c.isDifficult) {
+        syncCardToCloud(c);
+      }
+    });
+  }
+  return deckId ? migrated.filter(c => c.deckId === deckId) : migrated;
 }
 
 export function saveCard(card) {
