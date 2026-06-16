@@ -386,7 +386,7 @@ export default function FlashcardsPage() {
             const dueCount = getDueCards(deckCards).length;
             const newCount = getNewCards(deckCards).length;
             const progress = deckCards.length > 0
-              ? Math.round((deckCards.filter(c => c.srs?.repetitions >= 3).length / deckCards.length) * 100)
+              ? Math.round((deckCards.reduce((acc, c) => acc + (c.srs?.repetitions ? Math.min(c.srs.repetitions, 3) / 3 : 0), 0) / deckCards.length) * 100)
               : 0;
 
             return (
