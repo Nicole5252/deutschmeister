@@ -175,6 +175,8 @@ export async function syncCards(supabase, userId) {
         notes: local.notes || '',
         image_url: local.imageUrl || '',
         srs: local.srs || null,
+        is_favorite: local.isFavorite || false,
+        is_difficult: local.isDifficult || false,
         created_at: new Date(local.createdAt || Date.now()).toISOString(),
         updated_at: new Date(local.updatedAt || Date.now()).toISOString()
       });
@@ -195,6 +197,8 @@ export async function syncCards(supabase, userId) {
           notes: local.notes || '',
           image_url: local.imageUrl || '',
           srs: local.srs || null,
+          is_favorite: local.isFavorite || false,
+          is_difficult: local.isDifficult || false,
           created_at: new Date(local.createdAt || Date.now()).toISOString(),
           updated_at: new Date(localUpdated).toISOString()
         });
@@ -227,6 +231,8 @@ export async function syncCards(supabase, userId) {
         notes: cloud.notes,
         imageUrl: cloud.image_url,
         srs: cloud.srs,
+        isFavorite: cloud.is_favorite || false,
+        isDifficult: cloud.is_difficult || false,
         createdAt: new Date(cloud.created_at).getTime(),
         updatedAt: cloudUpdated
       });
@@ -246,6 +252,8 @@ export async function syncCards(supabase, userId) {
           notes: cloud.notes,
           imageUrl: cloud.image_url,
           srs: cloud.srs,
+          isFavorite: cloud.is_favorite || false,
+          isDifficult: cloud.is_difficult || false,
           createdAt: new Date(cloud.created_at).getTime(),
           updatedAt: cloudUpdated
         };

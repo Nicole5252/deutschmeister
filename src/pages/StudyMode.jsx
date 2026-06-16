@@ -171,7 +171,8 @@ export default function StudyMode() {
   const handleGrade = useCallback((grade) => {
     if (!currentCard) return;
     const newSrs = calculateNextReview(currentCard, grade);
-    saveCard({ ...currentCard, srs: newSrs });
+    const isDifficult = grade < 2;
+    saveCard({ ...currentCard, srs: newSrs, isDifficult });
 
     const isCorrect = grade >= 2;
     setSessionStats(prev => ({

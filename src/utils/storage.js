@@ -56,6 +56,8 @@ async function syncCardToCloud(card) {
       notes: card.notes || '',
       image_url: card.imageUrl || '',
       srs: card.srs || null,
+      is_favorite: card.isFavorite || false,
+      is_difficult: card.isDifficult || false,
       created_at: new Date(card.createdAt || Date.now()).toISOString(),
       updated_at: new Date(card.updatedAt || Date.now()).toISOString()
     });
@@ -84,6 +86,8 @@ async function syncCardsToCloud(cards) {
       notes: c.notes || '',
       image_url: c.imageUrl || '',
       srs: c.srs || null,
+      is_favorite: c.isFavorite || false,
+      is_difficult: c.isDifficult || false,
       created_at: new Date(c.createdAt || Date.now()).toISOString(),
       updated_at: new Date(c.updatedAt || Date.now()).toISOString()
     }));

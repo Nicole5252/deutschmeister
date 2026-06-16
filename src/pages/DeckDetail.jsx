@@ -6,7 +6,7 @@ import { getDecks, getCards, saveCard, saveCards, deleteCard } from '../utils/st
 import { generateId, speak, formatNextReview, translateAndGenerate } from '../utils/helpers';
 import {
   ArrowLeft, Plus, Trash2, Edit3, Volume2, X, Check, Image, Upload, Sparkles, Loader,
-  ChevronLeft, ChevronRight, Shuffle, LayoutList, Eye
+  ChevronLeft, ChevronRight, Shuffle, LayoutList, Eye, Star
 } from 'lucide-react';
 import { ImportModal } from './FlashcardsPage';
 import './DeckDetail.css';
@@ -18,7 +18,7 @@ const POS_LABELS = {
 
 const ARTICLE_COLORS = { der: '#818cf8', die: '#f472b6', das: '#34d399' };
 
-function FlipCard({ card, isFlipped, onFlip, onSpeak }) {
+function FlipCard({ card, isFlipped, onFlip, onSpeak, onToggleFavorite }) {
   const articleColors = { der: '#818cf8', die: '#f472b6', das: '#34d399' };
 
   if (!card) return null;
@@ -28,27 +28,41 @@ function FlipCard({ card, isFlipped, onFlip, onSpeak }) {
       <motion.div
         className="flip-card-inner"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 200, damping: 25 }}
+        transition={{ duration: 0.4 }}
         style={{ transformStyle: 'preserve-3d' }}
       >
         {/* Front */}
         <div className="flip-card-face flip-card-front">
           <div className="card-face-content">
-            <div className="card-lang-label">Deutsch</div>
+            <div className="card-lang-label">德文</div>
             {card.article && (
-              <div className="card-article" style={{ color: articleColors[card.article] || 'var(--accent-primary)' }}>
+              <span className="card-article" style={{ color: articleColors[card.article] || 'var(--accent-primary)' }}>
                 {card.article}
-              </div>
+              </span>
             )}
             <div className="card-word">{card.german}</div>
             {card.partOfSpeech && (
-              <div className="card-pos badge badge-primary">{POS_LABELS[card.partOfSpeech] || card.partOfSpeech}</div>
+              <div className="card-pos">
+                <span className="badge badge-primary">{POS_LABELS[card.partOfSpeech] || card.partOfSpeech}</span>
+              </div>
             )}
             <button
               className="card-speak-btn"
-              onClick={e => { e.stopPropagation(); onSpeak(card.german); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSpeak(card.german);
+              }}
             >
               <Volume2 size={18} />
+            </button>
+            <button
+              className={`card-fav-btn ${card.isFavorite ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(card);
+              }}
+            >
+              <Star size={18} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
             </button>
             <div className="card-hint text-muted">點擊翻轉</div>
           </div>
@@ -68,6 +82,15 @@ function FlipCard({ card, isFlipped, onFlip, onSpeak }) {
             {card.notes && (
               <div className="card-notes text-muted" style={{ fontSize: '0.85rem' }}>{card.notes}</div>
             )}
+            <button
+              className={`card-fav-btn ${card.isFavorite ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(card);
+              }}
+            >
+              <Star size={18} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
+            </button>
           </div>
         </div>
       </motion.div>
@@ -83,6 +106,7 @@ function CardModal({ card, deckId, onClose, onSave, t, apiKeys }) {
     article: card?.article || '',
     example: card?.example || '',
     notes: card?.notes || '',
+    isFavorite: card?.isFavorite || false,
   });
 
   const [loadingTranslate, setLoadingTranslate] = useState(false);
@@ -205,6 +229,8 @@ function CardModal({ card, deckId, onClose, onSave, t, apiKeys }) {
       chinese: form.chinese.trim(),
       srs: card?.srs || null,
       imageUrl: card?.imageUrl || '',
+      isFavorite: form.isFavorite,
+      isDifficult: card?.isDifficult || false,
     });
     onClose();
   };
@@ -297,6 +323,13 @@ function CardModal({ card, deckId, onClose, onSave, t, apiKeys }) {
             <label className="label">{t('flashcards.notes')}</label>
             <textarea className="input textarea" rows={2} value={form.notes} onChange={e => update('notes', e.target.value)} />
           </div>
+
+          <div className="form-group flex items-center gap-2 mt-4" style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => update('isFavorite', !form.isFavorite)}>
+            <div className={`synonym-checkbox ${form.isFavorite ? 'checked' : ''}`}>
+              {form.isFavorite && <Check size={10} strokeWidth={3} />}
+            </div>
+            <span className="label" style={{ marginBottom: 0, cursor: 'pointer' }}>⭐ 收藏此單字</span>
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-glass" onClick={onClose}>{t('common.cancel')}</button>
@@ -321,6 +354,7 @@ export default function DeckDetail() {
   const [editingCard, setEditingCard] = useState(null);
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'overview'
+  const [filterTab, setFilterTab] = useState('all'); // 'all' | 'favorite' | 'difficult'
   const [overviewIdx, setOverviewIdx] = useState(0);
   const [overviewFlipped, setOverviewFlipped] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
@@ -351,10 +385,21 @@ export default function DeckDetail() {
     showToast('已刪除單字', 'info');
   }
 
-  const filtered = cards.filter(c =>
-    c.german.toLowerCase().includes(search.toLowerCase()) ||
-    c.chinese.includes(search)
-  );
+  function toggleFavorite(card) {
+    const updated = { ...card, isFavorite: !card.isFavorite };
+    saveCard(updated);
+    setCards(getCards(deckId));
+  }
+
+  const filtered = cards.filter(c => {
+    const matchesSearch = c.german.toLowerCase().includes(search.toLowerCase()) ||
+                          c.chinese.includes(search);
+    if (!matchesSearch) return false;
+
+    if (filterTab === 'favorite') return !!c.isFavorite;
+    if (filterTab === 'difficult') return !!c.isDifficult;
+    return true;
+  });
 
   const activeCards = isShuffled ? shuffledCards : filtered;
 
@@ -367,7 +412,7 @@ export default function DeckDetail() {
     }
     setOverviewIdx(0);
     setOverviewFlipped(false);
-  }, [isShuffled, search, cards]);
+  }, [isShuffled, search, cards, filterTab]);
 
   // Keyboard navigation for card overview mode
   useEffect(() => {
@@ -427,6 +472,28 @@ export default function DeckDetail() {
         </div>
       </div>
 
+      {/* Filter Tabs */}
+      <div className="deck-detail-tabs flex gap-2 mb-6">
+        <button
+          className={`tab-btn ${filterTab === 'all' ? 'active' : ''}`}
+          onClick={() => setFilterTab('all')}
+        >
+          全部單字 ({cards.length})
+        </button>
+        <button
+          className={`tab-btn ${filterTab === 'favorite' ? 'active' : ''}`}
+          onClick={() => setFilterTab('favorite')}
+        >
+          ⭐ 我的收藏 ({cards.filter(c => c.isFavorite).length})
+        </button>
+        <button
+          className={`tab-btn ${filterTab === 'difficult' ? 'active' : ''}`}
+          onClick={() => setFilterTab('difficult')}
+        >
+          ⚠️ 困難單字 ({cards.filter(c => c.isDifficult).length})
+        </button>
+      </div>
+
       {/* Controls: Search and View Mode Switcher */}
       <div className="flex justify-between items-center flex-wrap gap-4 mb-6" style={{ width: '100%' }}>
         <div className="search-bar" style={{ flex: '1 1 auto' }}>
@@ -463,7 +530,13 @@ export default function DeckDetail() {
       {/* Cards List / Overview Mode */}
       {filtered.length === 0 ? (
         <div className="card card-body text-center" style={{ padding: '3rem' }}>
-          <p className="text-secondary">{cards.length === 0 ? t('flashcards.emptyDeck') : '沒有符合的搜尋結果'}</p>
+          <p className="text-secondary">
+            {cards.length === 0 
+              ? t('flashcards.emptyDeck') 
+              : filterTab !== 'all' 
+                ? '此篩選分類中沒有符合的單字' 
+                : '沒有符合的搜尋結果'}
+          </p>
           {cards.length === 0 && (
             <button className="btn btn-primary btn-sm mt-4" onClick={() => setShowModal(true)}>
               <Plus size={14} />
@@ -504,6 +577,7 @@ export default function DeckDetail() {
                   isFlipped={overviewFlipped}
                   onFlip={() => setOverviewFlipped(prev => !prev)}
                   onSpeak={speak}
+                  onToggleFavorite={toggleFavorite}
                 />
               </motion.div>
             </AnimatePresence>
@@ -576,6 +650,17 @@ export default function DeckDetail() {
                 <tr key={card.id}>
                   <td>
                     <div className="flex items-center gap-2">
+                      <button
+                        className={`table-fav-btn ${card.isFavorite ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(card);
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        title={card.isFavorite ? '取消收藏' : '加入收藏'}
+                      >
+                        <Star size={16} fill={card.isFavorite ? 'var(--warning)' : 'none'} color={card.isFavorite ? 'var(--warning)' : 'var(--text-secondary)'} />
+                      </button>
                       {card.article && (
                         <span className="article-tag" style={{ color: ARTICLE_COLORS[card.article] || 'var(--accent-primary)' }}>
                           {card.article}
