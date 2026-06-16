@@ -1,0 +1,515 @@
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
+
+// Initialize pdf.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+/**
+ * Convert a specific page of a PDF File to a base64 PNG image.
+ * @param {File} file  - The PDF File object
+ * @param {number} pageNum - 1-indexed page number (default: 1)
+ * @returns {Promise<{ base64: string, mimeType: string }>}
+ */
+export async function pdfPageToImageBase64(file, pageNum = 1) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdf.numPages;
+  const page = await pdf.getPage(Math.min(pageNum, totalPages));
+
+  const viewport = page.getViewport({ scale: 2.0 }); // 2x for clarity
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+
+  await page.render({ canvasContext: ctx, viewport }).promise;
+
+  const dataUrl = canvas.toDataURL('image/png');
+  const base64 = dataUrl.split(',')[1];
+  return { base64, mimeType: 'image/png', totalPages };
+}
+
+
+let germanVoice = null;
+
+function findGermanVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  // Prefer German voices
+  return voices.find(v => v.lang.startsWith('de')) || 
+         voices.find(v => v.lang.includes('de')) || 
+         null;
+}
+
+export function initTTS() {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      germanVoice = findGermanVoice();
+    };
+    germanVoice = findGermanVoice();
+  }
+}
+
+export function speak(text, rate = 0.8) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (!germanVoice) germanVoice = findGermanVoice();
+  if (germanVoice) utterance.voice = germanVoice;
+  utterance.lang = 'de-DE';
+  utterance.rate = rate;
+  utterance.pitch = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
+export function getAvailableVoices() {
+  if (!window.speechSynthesis) return [];
+  return window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('de'));
+}
+
+// UUID generator
+export function generateId() {
+  return crypto.randomUUID ? crypto.randomUUID() : 
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}
+
+// Format date relative
+export function formatRelativeDate(timestamp) {
+  const diff = Date.now() - timestamp;
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 7) return `${days} 天前`;
+  if (days < 30) return `${Math.floor(days / 7)} 週前`;
+  return `${Math.floor(days / 30)} 個月前`;
+}
+
+// Format next review date
+export function formatNextReview(timestamp) {
+  if (!timestamp) return '新卡片';
+  const diff = timestamp - Date.now();
+  if (diff <= 0) return '待複習';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 60) return `${minutes} 分後`;
+  if (hours < 24) return `${hours} 小時後`;
+  return `${days} 天後`;
+}
+
+// AI API call to Google Gemini
+export async function callGemini(apiKey, contents, model = 'gemini-3.5-flash') {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+    throw new Error('Gemini API 沒有回傳內容。請檢查 API Key 是否有效。');
+  }
+  return data.candidates[0].content.parts[0].text;
+}
+
+// Helper to determine AI mode and key
+function getAIModeAndKey(apiKeys) {
+  if (typeof apiKeys === 'string') {
+    return { mode: 'openai', key: apiKeys };
+  }
+  if (apiKeys?.openaiKey) {
+    return { mode: 'openai', key: apiKeys.openaiKey };
+  }
+  if (apiKeys?.geminiKey) {
+    return { mode: 'gemini', key: apiKeys.geminiKey };
+  }
+  throw new Error('未設定 API Key，請先在設定中填入 OpenAI 或 Gemini API Key');
+}
+
+// AI API call to OpenAI
+export async function callOpenAI(apiKey, messages, model = 'gpt-4o') {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      temperature: 0.7,
+      max_tokens: 4000,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.error?.message || `API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Extract words from image using AI (OpenAI or Gemini)
+export async function extractWordsFromImage(apiKeys, imageBase64, mimeType = 'image/jpeg') {
+  const { mode, key } = getAIModeAndKey(apiKeys);
+  
+  const prompt = `你是一個極度嚴謹且高精準度的德文學習助手與文字辨識 (OCR) 專家。
+請仔細分析這張圖片，從上到下、從左到右地毯式掃描每一個角落（包含標題、主內文、表格、清單、註解、邊欄、例句中的關鍵詞、甚至是微小的標記），提取圖片中出現的【所有】德文單字或片語，不要遺漏任何一個。
+
+請以 JSON 格式回覆，格式如下：
+{
+  "words": [
+    {
+      "german": "德文單字或片語（不含冠詞）",
+      "chinese": "中文翻譯",
+      "partOfSpeech": "noun/verb/adjective/adverb/other",
+      "article": "der/die/das（如果不是名詞則留空）",
+      "example": "為該單字自動生成的德文例句（限 A1 程度，並附帶中文翻譯，例如：Das Haus ist groß. 房子很大。）"
+    }
+  ]
+}
+
+提取與辨識規範：
+1. 【地毯式提取】：必須仔細辨識圖片中每一個文字區域。凡是圖片中可被視為詞彙（單字、動詞片語、名詞片語等）的文字，都必須提取出來。絕對不能偷懶或只提取前幾個，必須做到滴水不漏。
+2. 【冠詞分離】：如果是名詞，提取出的「german」欄位不應包含冠詞（如 der/die/das 應抽離），並將冠詞填在「article」欄位中。
+3. 【自動生成 A1 例句】：對於「每一個」提取出來的單字，必須為其自動生成一個實用、簡單、嚴格符合 A1 程度的德文例句，並在例句後附上中文對照翻譯。例句不能為空。
+4. 【只回覆 JSON】：請僅回覆合法的 JSON 字串，不要包含任何 markdown 標記（如 \`\`\`json）或額外的說明文字。`;
+
+  let result;
+  if (mode === 'openai') {
+    const messages = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail: 'high' } }
+        ]
+      }
+    ];
+    result = await callOpenAI(key, messages, 'gpt-4o');
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ];
+    result = await callGemini(key, contents, 'gemini-3.5-flash');
+  }
+  
+  // Parse JSON
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid AI response format');
+  return JSON.parse(jsonMatch[0]);
+}
+
+// Generate grammar questions using AI (OpenAI or Gemini)
+export async function generateGrammarQuestions(apiKeys, topic, description, questionCount = 5, type = 'multiple') {
+  const { mode, key } = getAIModeAndKey(apiKeys);
+  
+  const typeMap = {
+    multiple: '選擇題（4個選項，1個正確答案）',
+    fillBlank: '填空題（提供一個句子，填入正確的形式）',
+    sentence: '造句練習（給出單字，造出正確的德文句子）',
+  };
+
+  const prompt = `你是一個德文文法教師。請根據以下文法主題生成 ${questionCount} 道練習題。
+
+文法主題：${topic}
+說明：${description || '請根據主題自行判斷'}
+題型：${typeMap[type] || '選擇題'}
+
+請以 JSON 格式回覆：
+{
+  "questions": [
+    {
+      "type": "multiple",
+      "question": "題目文字",
+      "options": ["選項A", "選項B", "選項C", "選項D"],
+      "correctAnswer": 0,
+      "explanation": "文法解說（請用繁體中文）"
+    }
+  ]
+}
+
+對於 fillBlank 類型：
+{
+  "questions": [
+    {
+      "type": "fillBlank",
+      "question": "Die Katze ___ (schlafen) auf dem Sofa.",
+      "blank": "schläft",
+      "hint": "提示",
+      "explanation": "文法解說"
+    }
+  ]
+}
+
+對於 sentence 類型：
+{
+  "questions": [
+    {
+      "type": "sentence",
+      "words": ["ich", "gehen", "heute", "Schule"],
+      "correctAnswer": "Ich gehe heute in die Schule.",
+      "explanation": "文法解說"
+    }
+  ]
+}
+
+只回覆 JSON，不要其他文字。`;
+
+  let result;
+  if (mode === 'openai') {
+    result = await callOpenAI(key, [{ role: 'user', content: prompt }]);
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: prompt }]
+      }
+    ];
+    result = await callGemini(key, contents, 'gemini-3.5-flash');
+  }
+  
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid AI response format');
+  return JSON.parse(jsonMatch[0]);
+}
+
+// Extract grammar rules and generate questions from an image using AI (OpenAI or Gemini)
+export async function extractGrammarFromImage(apiKeys, imageBase64, mimeType = 'image/png', options = {}) {
+  const { mode, key } = getAIModeAndKey(apiKeys);
+  const { count = 5, type = 'multiple', difficulty = 'medium' } = options;
+
+  const typeInstructions = {
+    multiple: `選擇題格式：
+{
+  "type": "multiple",
+  "question": "題目（德文句子）",
+  "options": ["選項A", "選項B", "選項C", "選項D"],
+  "correctAnswer": 0,
+  "explanation": "文法解說（繁體中文）"
+}`,
+    fillBlank: `填空題格式：
+{
+  "type": "fillBlank",
+  "question": "Die Katze ___ (schlafen) auf dem Sofa.",
+  "blank": "schläft",
+  "hint": "動詞提示",
+  "explanation": "文法解說（繁體中文）"
+}`,
+    sentence: `造句題格式：
+{
+  "type": "sentence",
+  "words": ["ich", "gehen", "heute", "Schule"],
+  "correctAnswer": "Ich gehe heute in die Schule.",
+  "explanation": "文法解說（繁體中文）"
+}`,
+  };
+
+  const prompt = `你是一位專業德文文法教師。請仔細分析這張圖片中的文法內容（可能是教科書頁面、筆記、練習題或文法說明）。
+
+根據圖片中的文法知識，生成 ${count} 道難度為「${difficulty}」的德文練習題。
+
+題型：${typeInstructions[type] || typeInstructions.multiple}
+
+請以 JSON 格式回覆，格式如下：
+{
+  "topicDetected": "偵測到的文法主題名稱（德文）",
+  "topicZh": "文法主題中文名稱",
+  "questions": [ ...題目陣列... ]
+}
+
+注意：
+- 題目要基於圖片中實際出現的文法概念
+- 解說使用繁體中文
+- 難度「easy」表示基礎用法，「medium」表示正常課本程度，「hard」表示較複雜的變化
+- 只回覆 JSON，不要其他文字`;
+
+  let result;
+  if (mode === 'openai') {
+    const messages = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}`, detail: 'high' } },
+        ],
+      },
+    ];
+    result = await callOpenAI(key, messages, 'gpt-4o');
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ];
+    result = await callGemini(key, contents, 'gemini-3.5-flash');
+  }
+
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('AI 回傳格式錯誤，請再試一次');
+  return JSON.parse(jsonMatch[0]);
+}
+
+// Generate mixed grammar questions based on selected topics with strict A1 vocabulary/syntax constraints
+export async function generateMixedGrammarQuestions(apiKeys, selectedTopics, questionCount = 5, type = 'multiple') {
+  const { mode, key } = getAIModeAndKey(apiKeys);
+
+  const typeMap = {
+    multiple: '選擇題（4個選項，1個正確答案）',
+    fillBlank: '填空題（提供一個句子，填入正確的形式）',
+    sentence: '造句練習（給出單字，造出正確的德文句子）',
+  };
+
+  const topicListStr = selectedTopics.map(t => `${t.name} (${t.nameZh || ''})`).join(', ');
+
+  const prompt = `你是一個專業德文文法教師。請根據以下勾選的德文文法主題，生成 ${questionCount} 道練習題。
+
+【重要出題規範】：
+1. 【單字與句型限制】：所有題目中出現的德文單字、片語及句型結構，必須「嚴格限制在 A1 的初級程度」以內。絕對不可出現 A2 或以上（例如 B1, B2）的高難度詞彙與語法結構。
+2. 【文法主題範圍】：題目「僅限於」以下使用者勾選的文法範圍：
+   ${topicListStr}
+3. 【題型限制】：全部生成為「${typeMap[type] || '選擇題'}」。
+4. 【隨機融合】：每道題目可以隨機決定是：
+   - 「專注在單一個」勾選的文法點（例如：只考 Akkusativ）
+   - 「融合多個」已勾選的文法點在同一個題目中（例如：在同一個句子中同時考動詞變位與 Dativ）
+5. 【解說語言】：所有的文法解說必須使用「繁體中文」，並且要詳細解釋該題考了哪些文法點，為什麼這個答案是正確的。
+
+請以 JSON 格式回覆：
+{
+  "questions": [
+    {
+      "type": "multiple",
+      "question": "題目文字",
+      "options": ["選項A", "選項B", "選項C", "選項D"],
+      "correctAnswer": 0,
+      "explanation": "文法解說（請說明考了哪些文法點以及詳細解析，使用繁體中文）"
+    }
+  ]
+}
+
+對於 fillBlank 類型：
+{
+  "questions": [
+    {
+      "type": "fillBlank",
+      "question": "題目句子，用 ___ 表示空格。例：Die Katze ___ (schlafen) auf dem Sofa.",
+      "blank": "正確答案答案值。例：schläft",
+      "hint": "提示",
+      "explanation": "文法解說"
+    }
+  ]
+}
+
+對於 sentence 類型：
+{
+  "questions": [
+    {
+      "type": "sentence",
+      "words": ["打散的單字陣列。例如：[\\\"ich\\\", \\\"gehen\\\", \\\"heute\\\", \\\"Schule\\\"]"],
+      "correctAnswer": "正確德文句子。例如：Ich gehe heute in die Schule.",
+      "explanation": "文法解說"
+    }
+  ]
+}
+
+只回覆 JSON，不要其他文字。`;
+
+  let result;
+  if (mode === 'openai') {
+    result = await callOpenAI(key, [{ role: 'user', content: prompt }]);
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: prompt }]
+      }
+    ];
+    result = await callGemini(key, contents, 'gemini-3.5-flash');
+  }
+
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid AI response format');
+  return JSON.parse(jsonMatch[0]);
+}
+
+// Translate a word (German <-> Chinese), find synonyms, and generate an A1 example sentence
+export async function translateAndGenerate(apiKeys, text, inputLang) {
+  const { mode, key } = getAIModeAndKey(apiKeys);
+
+  const prompt = `你是一個德文學習助手。請分析使用者輸入的詞彙（德文或中文），並提供翻譯、詞性、名詞冠詞（如果是德文名詞）以及自動生成的德文例句。
+
+使用者輸入：${text}
+輸入語言類型：${inputLang === 'de' ? '德文' : '中文'}
+
+請遵循以下出題規範：
+1. 【單字與句型限制】：例句中所使用的德文單字及句型結構，必須「嚴格限制在 A1 程度」以內。
+2. 【同義字與多重翻譯】：提供 2-4 個常見的對應翻譯或同義詞選項。每個選項中必須包含：德文單字（不含冠詞）、中文翻譯、詞性（noun/verb/adjective/adverb/other）、名詞冠詞（der/die/das，若非名詞則留空）。
+3. 【自動生成例句】：為該單字自動生成一個適合 A1 程度的簡單德文例句，並在例句後附上中文對照翻譯（例如：Das Haus ist groß. 房子很大。）。例句中所使用的德文單字要與翻譯選項契合。
+
+請以 JSON 格式回覆，格式如下：
+{
+  "options": [
+    {
+      "german": "德文單字",
+      "chinese": "中文翻譯",
+      "partOfSpeech": "noun/verb/adjective/adverb/other",
+      "article": "der/die/das（如果不是名詞則為空字串）"
+    }
+  ],
+  "example": "德文例句（附帶中文對照翻譯）"
+}
+只回覆 JSON，不要其他文字。`;
+
+  let result;
+  if (mode === 'openai') {
+    result = await callOpenAI(key, [{ role: 'user', content: prompt }]);
+  } else {
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: prompt }]
+      }
+    ];
+    result = await callGemini(key, contents, 'gemini-3.5-flash');
+  }
+
+  const jsonMatch = result.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('AI 翻譯失敗，請再試一次');
+  return JSON.parse(jsonMatch[0]);
+}

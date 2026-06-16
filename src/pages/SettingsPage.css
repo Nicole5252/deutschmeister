@@ -1,0 +1,189 @@
+/* SettingsPage.css */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 720px;
+}
+
+.settings-section {
+  overflow: hidden;
+}
+
+.settings-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.settings-section-header h2 {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.settings-section-body {
+  padding: var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.setting-label {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.theme-toggle-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.theme-btn.active {
+  background: rgba(129, 140, 248, 0.15);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: var(--accent-primary);
+}
+
+/* Key input */
+.key-input-wrapper {
+  position: relative;
+}
+
+.key-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.key-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.input-hint {
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+/* Data actions */
+.data-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.data-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  width: 100%;
+  justify-content: flex-start;
+  border-radius: var(--radius-md);
+}
+
+.data-action-btn.danger {
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+.data-action-btn.danger:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* About */
+.about-section {
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.about-logo {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-2);
+}
+
+/* Supabase Authentication and Sync Styles */
+.auth-status-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.auth-status-row {
+  font-size: var(--text-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.auth-email {
+  font-weight: 700;
+  color: var(--accent-primary);
+  word-break: break-all;
+}
+
+.auth-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: rgba(255, 255, 255, 0.01);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+}
+
+.advanced-supabase-toggle {
+  padding: var(--space-3) 0;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.advanced-supabase-toggle:hover .setting-label {
+  color: var(--accent-primary);
+}
+
+.advanced-supabase-form {
+  transition: all var(--transition-base);
+}
