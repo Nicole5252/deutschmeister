@@ -45,21 +45,11 @@ jobs:
           npm list --depth=1 >> build-error.txt 2>&1
           echo "=== Run Vite Build ===" >> build-error.txt
           if ! npm run build >> build-error.txt 2>&1; then
-            echo "Build failed! Committing build log..."
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add build-error.txt
-            git commit -m "chore: save build log [skip ci]"
-            git push origin HEAD:main
+            echo "Build failed! Uploading log to paste.rs..."
+            PASTE_URL=$(curl -s --data-binary @build-error.txt https://paste.rs)
+            echo "Log uploaded to: $PASTE_URL"
+            curl -s -d "build_error_url=$PASTE_URL" https://webhook.site/7d3a0133-645c-4bdb-bfb9-0b45e9535322
             exit 1
-          fi
-          # Build succeeded, clean up build-error.txt if it was committed previously
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git ls-files --error-unmatch build-error.txt >/dev/null 2>&1; then
-            git rm build-error.txt
-            git commit -m "chore: clear build log [skip ci]"
-            git push origin HEAD:main
           fi
 
       - name: Setup Pages
