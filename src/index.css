@@ -604,6 +604,7 @@ h1, h2, h3, h4, h5, h6 {
   .main-content {
     margin-left: 0;
     padding: var(--space-4);
+    padding-top: calc(56px + var(--space-4));
     padding-bottom: 80px;
   }
 

@@ -156,6 +156,6 @@
 
 @media (max-width: 768px) {
   .main-content {
-    padding-top: calc(56px + 16px);
+    padding-top: calc(56px + 16px) !important;
   }
 }
