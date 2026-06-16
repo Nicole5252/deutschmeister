@@ -7,7 +7,7 @@ on:
       - master
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -35,22 +35,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build
-        run: |
-          echo "=== Diagnostics ===" > build-error.txt
-          node -v >> build-error.txt 2>&1
-          npm -v >> build-error.txt 2>&1
-          pwd >> build-error.txt 2>&1
-          ls -la >> build-error.txt 2>&1
-          echo "=== Check Vite Installation ===" >> build-error.txt
-          npm list --depth=1 >> build-error.txt 2>&1 || true
-          echo "=== Run Vite Build ===" >> build-error.txt
-          if ! npm run build >> build-error.txt 2>&1; then
-            echo "Build failed! Uploading log to paste.rs..."
-            PASTE_URL=$(curl -s --data-binary @build-error.txt https://paste.rs)
-            echo "Log uploaded to: $PASTE_URL"
-            curl -s -d "build_error_url=$PASTE_URL" https://webhook.site/7d3a0133-645c-4bdb-bfb9-0b45e9535322
-            exit 1
-          fi
+        run: npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
