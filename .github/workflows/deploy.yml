@@ -7,7 +7,7 @@ on:
       - master
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -36,15 +36,31 @@ jobs:
 
       - name: Build
         run: |
-          echo "=== Diagnostics ==="
-          node -v
-          npm -v
-          pwd
-          ls -la
-          echo "=== Check Vite Installation ==="
-          npm list --depth=1 || true
-          echo "=== Run Vite Build ==="
-          npm run build
+          echo "=== Diagnostics ===" > build-error.txt
+          node -v >> build-error.txt 2>&1
+          npm -v >> build-error.txt 2>&1
+          pwd >> build-error.txt 2>&1
+          ls -la >> build-error.txt 2>&1
+          echo "=== Check Vite Installation ===" >> build-error.txt
+          npm list --depth=1 >> build-error.txt 2>&1
+          echo "=== Run Vite Build ===" >> build-error.txt
+          if ! npm run build >> build-error.txt 2>&1; then
+            echo "Build failed! Committing build log..."
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add build-error.txt
+            git commit -m "chore: save build log [skip ci]"
+            git push origin HEAD:main
+            exit 1
+          fi
+          # Build succeeded, clean up build-error.txt if it was committed previously
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-files --error-unmatch build-error.txt >/dev/null 2>&1; then
+            git rm build-error.txt
+            git commit -m "chore: clear build log [skip ci]"
+            git push origin HEAD:main
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
