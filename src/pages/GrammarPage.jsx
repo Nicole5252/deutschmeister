@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import {
   getGrammarTopics, saveGrammarTopic, deleteGrammarTopic,
-  saveGrammarQuestions, getGrammarQuestions
+  saveGrammarQuestions, getGrammarQuestions, getCards
 } from '../utils/storage';
 import {
   generateGrammarQuestions, generateId,
@@ -140,12 +140,16 @@ function GenerateModal({ topic, selectedTopics, onClose, onGenerated, t, apiKeys
     setLoading(true); setError('');
     try {
       let questions;
+      const userCards = getCards();
+      const userVocabList = userCards.map(c => `${c.german} (${c.chinese})`);
+
       if (isMixed) {
         const result = await generateMixedGrammarQuestions(
           apiKeys,
           selectedTopics,
           count,
-          type
+          type,
+          userVocabList
         );
         questions = result.questions.map(q => ({ ...q, id: generateId(), topicId: 'mixed' }));
         localStorage.setItem('dm_mixed_questions', JSON.stringify(questions));
@@ -156,7 +160,8 @@ function GenerateModal({ topic, selectedTopics, onClose, onGenerated, t, apiKeys
           `${topic.name} ${topic.nameZh || ''}`,
           `${topic.description || ''} 難度：${difficulty}`,
           count,
-          type
+          type,
+          userVocabList
         );
         questions = result.questions.map(q => ({ ...q, id: generateId(), topicId: topic.id }));
         saveGrammarQuestions(questions);

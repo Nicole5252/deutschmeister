@@ -228,7 +228,7 @@ export async function extractWordsFromImage(apiKeys, imageBase64, mimeType = 'im
 }
 
 // Generate grammar questions using AI (OpenAI or Gemini)
-export async function generateGrammarQuestions(apiKeys, topic, description, questionCount = 5, type = 'multiple') {
+export async function generateGrammarQuestions(apiKeys, topic, description, questionCount = 5, type = 'multiple', userVocabList = []) {
   const { mode, key } = getAIModeAndKey(apiKeys);
   
   const typeMap = {
@@ -237,11 +237,23 @@ export async function generateGrammarQuestions(apiKeys, topic, description, ques
     sentence: '造句練習（給出單字，造出正確的德文句子）',
   };
 
+  let vocabInstruction = '';
+  if (Array.isArray(userVocabList) && userVocabList.length > 0) {
+    vocabInstruction = `\n【出題詞彙要求（以使用者單字本為主，不得超過 A1 範圍）】：
+為了讓練習更符合使用者的真實學習內容，你必須「優先且主要」使用以下使用者單字本中的單字來設計題目（如例句、選項、問答）：
+${userVocabList.slice(0, 100).join(', ')}
+如果單字量不足或文法點需要其他單字配合，你可以使用其他德文單字，但所有使用的詞彙與句子結構都必須「嚴格限制在 A1 程度」，不得超過 A1 的範圍！\n`;
+  } else {
+    vocabInstruction = `\n【出題詞彙要求】：
+請使用簡單的德文單字，且所有題目與句子的字彙、片語及語法結構必須「嚴格限制在 A1 程度」，不得超過 A1 的範圍！\n`;
+  }
+
   const prompt = `你是一個專業的德文文法教師。請根據以下文法主題，生成 ${questionCount} 道練習題。
 
 文法主題：${topic}
 說明：${description || '請根據主題自行判斷'}
 要求題型形式：${typeMap[type] || '選擇題'}
+${vocabInstruction}
 
 【出題與題型規範（極重要）】：
 你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須嚴格限制在德語 A1 程度。
@@ -325,7 +337,7 @@ export async function generateGrammarQuestions(apiKeys, topic, description, ques
   }
   
   const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Invalid AI response format');
+  if (!jsonMatch) throw new Error('AI 回傳格式錯誤，請再試一次');
   return JSON.parse(jsonMatch[0]);
 }
 
@@ -415,7 +427,7 @@ export async function extractGrammarFromImage(apiKeys, imageBase64, mimeType = '
 }
 
 // Generate mixed grammar questions based on selected topics with strict A1 vocabulary/syntax constraints
-export async function generateMixedGrammarQuestions(apiKeys, selectedTopics, questionCount = 5, type = 'multiple') {
+export async function generateMixedGrammarQuestions(apiKeys, selectedTopics, questionCount = 5, type = 'multiple', userVocabList = []) {
   const { mode, key } = getAIModeAndKey(apiKeys);
 
   const typeMap = {
@@ -426,10 +438,22 @@ export async function generateMixedGrammarQuestions(apiKeys, selectedTopics, que
 
   const topicListStr = selectedTopics.map(t => `${t.name} (${t.nameZh || ''})`).join(', ');
 
+  let vocabInstruction = '';
+  if (Array.isArray(userVocabList) && userVocabList.length > 0) {
+    vocabInstruction = `\n【出題詞彙要求（以使用者單字本為主，不得超過 A1 範圍）】：
+為了讓練習更符合使用者的真實學習內容，你必須「優先且主要」使用以下使用者單字本中的單字來設計題目（如例句、選項、問答）：
+${userVocabList.slice(0, 100).join(', ')}
+如果單字量不足或文法點需要其他單字配合，你可以使用其他德文單字，但所有使用的詞彙與句子結構都必須「嚴格限制在 A1 程度」，不得超過 A1 的範圍！\n`;
+  } else {
+    vocabInstruction = `\n【出題詞彙要求】：
+請使用簡單的德文單字，且所有題目與句子的字彙、片語及語法結構必須「嚴格限制在 A1 程度」，不得超過 A1 的範圍！\n`;
+  }
+
   const prompt = `你是一個專業的德文文法教師。請根據以下勾選的德文文法主題，生成 ${questionCount} 道練習題。
 
 文法主題範圍：${topicListStr}
 要求題型形式：${typeMap[type] || '選擇題'}
+${vocabInstruction}
 
 【出題與題型規範（極重要）】：
 你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須嚴格限制在德語 A1 程度。
