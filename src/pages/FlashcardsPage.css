@@ -283,3 +283,58 @@
   color: var(--danger);
   font-size: var(--text-sm);
 }
+
+/* Tabs for FlashcardsPage */
+.flashcards-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 2px;
+}
+
+.flashcards-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.flashcards-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.flashcards-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+  text-shadow: 0 0 10px rgba(129, 140, 248, 0.2);
+}
+
+/* Shared and Public Deck Card visual distinction */
+.deck-card-shared {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(18, 18, 31, 0.6) 100%) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2), inset 0 0 12px rgba(99, 102, 241, 0.05);
+}
+
+.public-deck-card {
+  border-color: rgba(99, 102, 241, 0.2) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(18, 18, 31, 0.6) 100%) !important;
+  transition: all var(--transition-normal);
+}
+
+.public-deck-card:hover {
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2) !important;
+  transform: translateY(-4px);
+}

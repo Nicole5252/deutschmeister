@@ -4,13 +4,14 @@ import { useApp } from '../contexts/AppContext';
 import {
   getDecks, saveDeck, deleteDeck, getCards, saveCards
 } from '../utils/storage';
+import { getSupabase } from '../utils/supabase';
 import {
   extractWordsFromImage, generateId, pdfPageToImageBase64
 } from '../utils/helpers';
 import { getDueCards, getNewCards } from '../utils/srs';
 import {
   Plus, Upload, BookOpen, Trash2, ChevronRight,
-  X, FileImage, FileText, Loader, CheckCircle, AlertCircle, ChevronLeft
+  X, FileImage, FileText, Loader, CheckCircle, AlertCircle, ChevronLeft, Globe
 } from 'lucide-react';
 import './FlashcardsPage.css';
 
@@ -313,15 +314,119 @@ export function ImportModal({ decks, onClose, onImport, t, apiKeys }) {
 }
 
 export default function FlashcardsPage() {
-  const { t, settings, showToast } = useApp();
+  const { t, settings, showToast, user } = useApp();
   const navigate = useNavigate();
   const [decks, setDecks] = useState([]);
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [activeTab, setActiveTab] = useState('myDecks'); // 'myDecks' | 'publicDecks'
+  const [publicDecks, setPublicDecks] = useState([]);
+  const [loadingPublic, setLoadingPublic] = useState(false);
+  const [importingDeckId, setImportingDeckId] = useState(null);
 
   useEffect(() => {
     setDecks(getDecks());
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'publicDecks') {
+      fetchPublicDecks();
+    }
+  }, [activeTab]);
+
+  async function fetchPublicDecks() {
+    const supabase = getSupabase();
+    if (!supabase) {
+      setPublicDecks([]);
+      return;
+    }
+    setLoadingPublic(true);
+    try {
+      const { data, error } = await supabase
+        .from('decks')
+        .select('*')
+        .eq('is_public', true)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+      setPublicDecks(data || []);
+    } catch (err) {
+      console.error(err);
+      showToast('載入共享單字庫失敗：' + err.message, 'error');
+    } finally {
+      setLoadingPublic(false);
+    }
+  }
+
+  async function handleImportPublicDeck(pubDeck) {
+    if (!user) {
+      showToast('⚠️ 請先登入帳號，才能匯入共享單字本！', 'error');
+      return;
+    }
+    const supabase = getSupabase();
+    if (!supabase) return;
+
+    setImportingDeckId(pubDeck.id);
+    try {
+      // 1. Fetch public cards of this deck from Supabase
+      const { data: pubCards, error } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('deck_id', pubDeck.id)
+        .eq('is_public', true);
+
+      if (error) throw error;
+
+      if (!pubCards || pubCards.length === 0) {
+        showToast('此共享單字本內無單字！', 'warning');
+        return;
+      }
+
+      // 2. Clone the deck locally
+      const newDeckId = generateId();
+      const clonedDeck = {
+        id: newDeckId,
+        name: `${pubDeck.name} (匯入)`,
+        description: pubDeck.description || '',
+        isPublic: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      saveDeck(clonedDeck);
+
+      // 3. Clone the cards locally
+      const clonedCards = pubCards.map(c => ({
+        id: generateId(),
+        deckId: newDeckId,
+        german: c.german,
+        chinese: c.chinese,
+        partOfSpeech: c.part_of_speech || 'other',
+        article: c.article || '',
+        example: c.example || '',
+        notes: c.notes || '',
+        imageUrl: c.image_url || '',
+        isFavorite: false,
+        isDifficult: false,
+        isPublic: false,
+        srs: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }));
+
+      saveCards(clonedCards);
+
+      showToast(`🎉 成功匯入「${pubDeck.name}」單字本與 ${clonedCards.length} 個單字！`, 'success');
+      
+      setDecks(getDecks());
+      setActiveTab('myDecks');
+    } catch (err) {
+      console.error(err);
+      showToast('匯入單字本失敗：' + err.message, 'error');
+    } finally {
+      setImportingDeckId(null);
+    }
+  }
 
   function handleCreateDeck(deck) {
     saveDeck(deck);
@@ -367,80 +472,160 @@ export default function FlashcardsPage() {
         </div>
       </div>
 
-      {decks.length === 0 ? (
-        <div className="empty-hero card">
-          <div className="empty-hero-content">
-            <div className="empty-hero-icon">📚</div>
-            <h2>從這裡開始學習德文</h2>
-            <p className="text-secondary">建立你的第一個單字本，然後匯入或手動新增單字。</p>
-            <button className="btn btn-primary btn-lg" onClick={() => setShowCreateDeck(true)}>
-              <Plus size={18} />
-              建立第一個單字本
+      {/* Tab Switcher */}
+      <div className="flashcards-tabs">
+        <button
+          className={`flashcards-tab ${activeTab === 'myDecks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('myDecks')}
+        >
+          <BookOpen size={16} />
+          我的單字本
+        </button>
+        <button
+          className={`flashcards-tab ${activeTab === 'publicDecks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('publicDecks')}
+        >
+          <Globe size={16} />
+          共享單字庫
+        </button>
+      </div>
+
+      {activeTab === 'myDecks' ? (
+        decks.length === 0 ? (
+          <div className="empty-hero card">
+            <div className="empty-hero-content">
+              <div className="empty-hero-icon">📚</div>
+              <h2>從這裡開始學習德文</h2>
+              <p className="text-secondary">建立你的第一個單字本，然後匯入或手動新增單字。</p>
+              <button className="btn btn-primary btn-lg" onClick={() => setShowCreateDeck(true)}>
+                <Plus size={18} />
+                建立第一個單字本
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="decks-grid">
+            {decks.map(deck => {
+              const deckCards = getCards(deck.id);
+              const dueCount = getDueCards(deckCards).length;
+              const newCount = getNewCards(deckCards).length;
+              const progress = deckCards.length > 0
+                ? Math.round((deckCards.reduce((acc, c) => acc + (c.srs?.repetitions ? Math.min(c.srs.repetitions, 3) / 3 : 0), 0) / deckCards.length) * 100)
+                : 0;
+
+              return (
+                <div key={deck.id} className={`deck-card card ${deck.isPublic ? 'deck-card-shared' : ''}`}>
+                  <div className="deck-card-header">
+                    <div className="deck-icon">
+                      {deck.isPublic ? <Globe size={20} /> : <BookOpen size={20} />}
+                    </div>
+                    {deck.isPublic && (
+                      <span className="badge badge-primary" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                        已分享
+                      </span>
+                    )}
+                    <button
+                      className="btn btn-glass btn-icon btn-sm"
+                      onClick={e => { e.stopPropagation(); handleDeleteDeck(deck.id); }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  <div className="deck-card-body">
+                    <h3 className="deck-name">{deck.name}</h3>
+                    {deck.description && <p className="deck-desc text-secondary">{deck.description}</p>}
+                    <div className="deck-stats">
+                      <span className="text-secondary">{deckCards.length} {t('flashcards.cardCount')}</span>
+                      {dueCount > 0 && <span className="badge badge-warning">{dueCount} 待複習</span>}
+                      {newCount > 0 && <span className="badge badge-primary">{newCount} 新</span>}
+                    </div>
+                    <div className="progress mt-4">
+                      <div className="progress-bar" style={{ width: `${progress}%` }} />
+                    </div>
+                    <div className="deck-progress-label text-secondary">
+                      {progress}% 已學習
+                    </div>
+                  </div>
+                  <div className="deck-card-footer">
+                    <button
+                      className="btn btn-glass btn-sm"
+                      onClick={() => navigate(`/cards/deck/${deck.id}`)}
+                    >
+                      管理單字
+                    </button>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => navigate(`/cards/study/${deck.id}`)}
+                      disabled={deckCards.length === 0}
+                    >
+                      {t('flashcards.study')} <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {/* Add deck button */}
+            <button className="add-deck-card" onClick={() => setShowCreateDeck(true)}>
+              <Plus size={32} style={{ color: 'var(--text-muted)' }} />
+              <span className="text-secondary">{t('flashcards.newDeck')}</span>
             </button>
           </div>
-        </div>
+        )
       ) : (
-        <div className="decks-grid">
-          {decks.map(deck => {
-            const deckCards = getCards(deck.id);
-            const dueCount = getDueCards(deckCards).length;
-            const newCount = getNewCards(deckCards).length;
-            const progress = deckCards.length > 0
-              ? Math.round((deckCards.reduce((acc, c) => acc + (c.srs?.repetitions ? Math.min(c.srs.repetitions, 3) / 3 : 0), 0) / deckCards.length) * 100)
-              : 0;
-
-            return (
-              <div key={deck.id} className="deck-card card">
+        loadingPublic ? (
+          <div className="text-center" style={{ padding: '60px 0' }}>
+            <div className="spinner mx-auto mb-4" />
+            <p className="text-secondary">載入共享單字庫中...</p>
+          </div>
+        ) : publicDecks.length === 0 ? (
+          <div className="empty-hero card">
+            <div className="empty-hero-content">
+              <div className="empty-hero-icon">🌐</div>
+              <h2>共享單字庫尚無內容</h2>
+              <p className="text-secondary">目前沒有使用者公開分享單字本。登入帳號後，進入您的單字本點擊「分享至公共庫」按鈕即可發佈！</p>
+            </div>
+          </div>
+        ) : (
+          <div className="decks-grid">
+            {publicDecks.map(pubDeck => (
+              <div key={pubDeck.id} className="deck-card card public-deck-card">
                 <div className="deck-card-header">
-                  <div className="deck-icon">
-                    <BookOpen size={20} />
+                  <div className="deck-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)' }}>
+                    <Globe size={20} />
                   </div>
-                  <button
-                    className="btn btn-glass btn-icon btn-sm"
-                    onClick={e => { e.stopPropagation(); handleDeleteDeck(deck.id); }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <span className="badge badge-primary" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                    共享資源
+                  </span>
                 </div>
-                <div className="deck-card-body">
-                  <h3 className="deck-name">{deck.name}</h3>
-                  {deck.description && <p className="deck-desc text-secondary">{deck.description}</p>}
-                  <div className="deck-stats">
-                    <span className="text-secondary">{deckCards.length} {t('flashcards.cardCount')}</span>
-                    {dueCount > 0 && <span className="badge badge-warning">{dueCount} 待複習</span>}
-                    {newCount > 0 && <span className="badge badge-primary">{newCount} 新</span>}
-                  </div>
-                  <div className="progress mt-4">
-                    <div className="progress-bar" style={{ width: `${progress}%` }} />
-                  </div>
-                  <div className="deck-progress-label text-secondary">
-                    {progress}% 已學習
+                <div className="deck-card-body" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3 className="deck-name">{pubDeck.name}</h3>
+                  <p className="deck-desc text-secondary" style={{ flex: 1, minHeight: '60px' }}>
+                    {pubDeck.description || '這個共享單字本沒有描述。'}
+                  </p>
+                  <div className="deck-stats" style={{ marginTop: 'auto', paddingTop: '12px' }}>
+                    <span className="text-secondary" style={{ fontSize: '0.82rem' }}>
+                      🌐 匯入後即可開始學習與自訂
+                    </span>
                   </div>
                 </div>
                 <div className="deck-card-footer">
                   <button
-                    className="btn btn-glass btn-sm"
-                    onClick={() => navigate(`/cards/deck/${deck.id}`)}
-                  >
-                    管理單字
-                  </button>
-                  <button
                     className="btn btn-primary btn-sm"
-                    onClick={() => navigate(`/cards/study/${deck.id}`)}
-                    disabled={deckCards.length === 0}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => handleImportPublicDeck(pubDeck)}
+                    disabled={importingDeckId !== null}
                   >
-                    {t('flashcards.study')} <ChevronRight size={14} />
+                    {importingDeckId === pubDeck.id ? (
+                      <><Loader className="spin" size={14} /> 正在匯入...</>
+                    ) : (
+                      <><Globe size={14} /> 匯入此單字本</>
+                    )}
                   </button>
                 </div>
               </div>
-            );
-          })}
-          {/* Add deck button */}
-          <button className="add-deck-card" onClick={() => setShowCreateDeck(true)}>
-            <Plus size={32} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-secondary">{t('flashcards.newDeck')}</span>
-          </button>
-        </div>
+            ))}
+          </div>
+        )
       )}
 
       {showCreateDeck && (

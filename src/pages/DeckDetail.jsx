@@ -6,7 +6,7 @@ import { getDecks, getCards, saveCard, saveCards, deleteCard } from '../utils/st
 import { generateId, speak, formatNextReview, translateAndGenerate } from '../utils/helpers';
 import {
   ArrowLeft, Plus, Trash2, Edit3, Volume2, X, Check, Image, Upload, Sparkles, Loader,
-  ChevronLeft, ChevronRight, Shuffle, LayoutList, Eye, Star
+  ChevronLeft, ChevronRight, Shuffle, LayoutList, Eye, Star, Globe
 } from 'lucide-react';
 import { ImportModal } from './FlashcardsPage';
 import './DeckDetail.css';
@@ -346,7 +346,7 @@ function CardModal({ card, deckId, onClose, onSave, t, apiKeys }) {
 export default function DeckDetail() {
   const { deckId } = useParams();
   const navigate = useNavigate();
-  const { t, settings, showToast } = useApp();
+  const { t, settings, showToast, user } = useApp();
   const [deck, setDeck] = useState(null);
   const [cards, setCards] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -359,6 +359,48 @@ export default function DeckDetail() {
   const [overviewFlipped, setOverviewFlipped] = useState(false);
   const [isShuffled, setIsShuffled] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleShareDeck() {
+    if (!user) {
+      showToast('⚠️ 請先登入帳號，才能分享單字本至公共庫！', 'error');
+      return;
+    }
+
+    if (cards.length === 0) {
+      showToast('⚠️ 單字本中沒有單字，無法分享！', 'error');
+      return;
+    }
+
+    const isAlreadyPublic = deck?.isPublic;
+    const confirmMsg = isAlreadyPublic
+      ? '確定要取消分享此單字本嗎？取消後其他人將無法在公共單字庫中搜尋到它。'
+      : '確定要將此單字本分享至「公共單字庫」嗎？公開後其他帳號皆可瀏覽並匯入此單字本。';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setSharing(true);
+    try {
+      const nextPublicState = !isAlreadyPublic;
+      
+      // Update local deck
+      const updatedDeck = { ...deck, isPublic: nextPublicState };
+      saveDeck(updatedDeck);
+      setDeck(updatedDeck);
+
+      // Update all cards in this deck to match the public status
+      const updatedCards = cards.map(c => ({ ...c, isPublic: nextPublicState }));
+      saveCards(updatedCards);
+      setCards(updatedCards);
+
+      showToast(nextPublicState ? '🌐 已分享至公共庫！' : '🔒 已取消分享！', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('操作失敗：' + err.message, 'error');
+    } finally {
+      setSharing(false);
+    }
+  }
 
   useEffect(() => {
     const decks = getDecks();
@@ -455,6 +497,22 @@ export default function DeckDetail() {
           </div>
         </div>
         <div className="flex gap-3">
+          {user && (
+            <button
+              className={`btn ${deck?.isPublic ? 'btn-primary' : 'btn-glass'}`}
+              onClick={handleShareDeck}
+              disabled={sharing}
+              title={deck?.isPublic ? '取消分享' : '分享至公共庫'}
+              style={{
+                background: deck?.isPublic ? 'rgba(99, 102, 241, 0.15)' : undefined,
+                borderColor: deck?.isPublic ? 'var(--accent-primary)' : undefined,
+                color: deck?.isPublic ? 'var(--accent-primary)' : undefined,
+              }}
+            >
+              <Globe size={16} />
+              {deck?.isPublic ? '已公開分享' : '分享至公共庫'}
+            </button>
+          )}
           <button
             className="btn btn-glass"
             onClick={() => setShowImport(true)}

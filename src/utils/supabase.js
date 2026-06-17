@@ -83,6 +83,7 @@ export async function syncDecks(supabase, userId) {
         user_id: userId,
         name: local.name,
         description: local.description,
+        is_public: local.isPublic || false,
         created_at: new Date(local.createdAt || Date.now()).toISOString(),
         updated_at: new Date(local.updatedAt || Date.now()).toISOString()
       });
@@ -96,6 +97,7 @@ export async function syncDecks(supabase, userId) {
           user_id: userId,
           name: local.name,
           description: local.description,
+          is_public: local.isPublic || false,
           created_at: new Date(local.createdAt || Date.now()).toISOString(),
           updated_at: new Date(localUpdated).toISOString()
         });
@@ -121,6 +123,7 @@ export async function syncDecks(supabase, userId) {
         id: cloud.id,
         name: cloud.name,
         description: cloud.description,
+        isPublic: cloud.is_public || false,
         createdAt: new Date(cloud.created_at).getTime(),
         updatedAt: cloudUpdated
       });
@@ -133,6 +136,7 @@ export async function syncDecks(supabase, userId) {
           ...local,
           name: cloud.name,
           description: cloud.description,
+          isPublic: cloud.is_public || false,
           createdAt: new Date(cloud.created_at).getTime(),
           updatedAt: cloudUpdated
         };
@@ -177,6 +181,7 @@ export async function syncCards(supabase, userId) {
         srs: local.srs || null,
         is_favorite: local.isFavorite || false,
         is_difficult: local.isDifficult || false,
+        is_public: local.isPublic || false,
         created_at: new Date(local.createdAt || Date.now()).toISOString(),
         updated_at: new Date(local.updatedAt || Date.now()).toISOString()
       });
@@ -199,6 +204,7 @@ export async function syncCards(supabase, userId) {
           srs: local.srs || null,
           is_favorite: local.isFavorite || false,
           is_difficult: local.isDifficult || false,
+          is_public: local.isPublic || false,
           created_at: new Date(local.createdAt || Date.now()).toISOString(),
           updated_at: new Date(localUpdated).toISOString()
         });
@@ -233,6 +239,7 @@ export async function syncCards(supabase, userId) {
         srs: cloud.srs,
         isFavorite: cloud.is_favorite || false,
         isDifficult: cloud.is_difficult || false,
+        isPublic: cloud.is_public || false,
         createdAt: new Date(cloud.created_at).getTime(),
         updatedAt: cloudUpdated
       });
@@ -254,6 +261,7 @@ export async function syncCards(supabase, userId) {
           srs: cloud.srs,
           isFavorite: cloud.is_favorite || false,
           isDifficult: cloud.is_difficult || false,
+          isPublic: cloud.is_public || false,
           createdAt: new Date(cloud.created_at).getTime(),
           updatedAt: cloudUpdated
         };

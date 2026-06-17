@@ -14,6 +14,7 @@ async function syncDeckToCloud(deck) {
       user_id: userId,
       name: deck.name,
       description: deck.description,
+      is_public: deck.isPublic || false,
       created_at: new Date(deck.createdAt || Date.now()).toISOString(),
       updated_at: new Date(deck.updatedAt || Date.now()).toISOString()
     });
@@ -58,6 +59,7 @@ async function syncCardToCloud(card) {
       srs: card.srs || null,
       is_favorite: card.isFavorite || false,
       is_difficult: card.isDifficult || false,
+      is_public: card.isPublic || false,
       created_at: new Date(card.createdAt || Date.now()).toISOString(),
       updated_at: new Date(card.updatedAt || Date.now()).toISOString()
     });
@@ -88,6 +90,7 @@ async function syncCardsToCloud(cards) {
       srs: c.srs || null,
       is_favorite: c.isFavorite || false,
       is_difficult: c.isDifficult || false,
+      is_public: c.isPublic || false,
       created_at: new Date(c.createdAt || Date.now()).toISOString(),
       updated_at: new Date(c.updatedAt || Date.now()).toISOString()
     }));
