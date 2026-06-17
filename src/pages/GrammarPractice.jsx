@@ -203,12 +203,13 @@ export default function GrammarPractice() {
   const [finished, setFinished] = useState(false);
 
   const BUILT_IN_NAMES = {
-    'builtin-nominativ': { name: 'Nominativ', nameZh: '第一格（主格）' },
-    'builtin-akkusativ': { name: 'Akkusativ', nameZh: '第四格（受格）' },
-    'builtin-dativ': { name: 'Dativ', nameZh: '第三格（與格）' },
-    'builtin-genitiv': { name: 'Genitiv', nameZh: '第二格（屬格）' },
-    'builtin-konjugation': { name: 'Verben Konjugation', nameZh: '動詞變位' },
-    'builtin-plural': { name: 'Plural', nameZh: '名詞複數' },
+    'builtin-wechselpraepositionen': { name: 'Wechselpräpositionen', nameZh: '雙介系詞' },
+    'builtin-verben-praepositionen': { name: 'Verben und Präpositionen', nameZh: '動詞與介系詞的格' },
+    'builtin-pronomen-artikel': { name: 'Pronomen und Artikel', nameZh: '冠詞與代名詞的變化' },
+    'builtin-imperativ': { name: 'Imperativ', nameZh: '祈使句 / 命令句' },
+    'builtin-perfekt': { name: 'Perfekt', nameZh: '現在完成式' },
+    'builtin-trennbare-verben': { name: 'Trennbare Verben', nameZh: '可分動詞' },
+    'builtin-modalverben': { name: 'Modalverben', nameZh: '情態助動詞' },
   };
 
   useEffect(() => {
