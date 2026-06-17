@@ -119,7 +119,7 @@ function isFallbackableError(status, message) {
 
 // AI API call to Google Gemini with automatic retry and model fallback mechanism
 export async function callGemini(apiKey, contents, model = 'gemini-2.5-flash') {
-  const fallbackModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+  const fallbackModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-1.5-flash'];
   
   // Create a unique list of models to try, starting with the requested one
   const modelsToTry = [model, ...fallbackModels.filter(m => m !== model)];
@@ -188,8 +188,8 @@ export async function callGemini(apiKey, contents, model = 'gemini-2.5-flash') {
     console.warn(`[Gemini API] Model ${currentModel} failed both attempts. Trying next fallback model...`);
   }
 
-  // If all models failed, throw the last error message
-  throw new Error(lastError?.message || 'Gemini API 呼叫失敗，所有備用模型均無法使用。');
+  // If all models failed, throw a descriptive error containing the last model's error message
+  throw new Error(`[備用模型皆失效] Gemini API 呼叫失敗。最後嘗試的模型錯誤：${lastError?.message || lastError || '未知錯誤'}`);
 }
 
 // Helper to determine AI mode and key
