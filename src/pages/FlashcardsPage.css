@@ -53,8 +53,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px var(--accent-interactive-glow);
+}
+
+[data-theme="light"] .deck-icon {
+  color: #ffffff;
 }
 
 .deck-card-body {
@@ -115,7 +119,7 @@
 
 .add-deck-card:hover {
   border-color: var(--accent-primary);
-  background: rgba(129, 140, 248, 0.05);
+  background: var(--accent-interactive-bg);
 }
 
 .empty-hero {
@@ -179,11 +183,11 @@
 
 .upload-zone.dragging {
   border-color: var(--accent-primary);
-  background: rgba(129, 140, 248, 0.08);
+  background: var(--accent-interactive-bg);
 }
 
 .upload-zone:hover {
-  border-color: rgba(129, 140, 248, 0.4);
+  border-color: var(--accent-interactive-border-strong);
 }
 
 /* Extracted words */
@@ -246,7 +250,7 @@
   font-size: 0.65rem;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(129, 140, 248, 0.2);
+  background: var(--accent-interactive-bg-strong);
   color: var(--accent-primary);
   font-weight: 600;
 }
@@ -317,7 +321,7 @@
 .flashcards-tab.active {
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
-  text-shadow: 0 0 10px rgba(129, 140, 248, 0.2);
+  text-shadow: none;
 }
 
 /* Shared and Public Deck Card visual distinction */

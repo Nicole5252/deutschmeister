@@ -68,11 +68,11 @@
 }
 
 .flip-card-front {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(167, 139, 250, 0.06) 100%);
+  background: var(--glass-bg-hover);
 }
 
 .flip-card-back {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(45, 212, 191, 0.05) 100%);
+  background: var(--glass-bg-hover);
 }
 
 .card-face-content {

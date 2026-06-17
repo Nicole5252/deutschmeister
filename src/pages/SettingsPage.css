@@ -65,8 +65,8 @@
 }
 
 .theme-btn.active {
-  background: rgba(129, 140, 248, 0.15);
-  border-color: rgba(129, 140, 248, 0.4);
+  background: var(--accent-interactive-bg-strong);
+  border-color: var(--accent-interactive-border-strong);
   color: var(--accent-primary);
 }
 

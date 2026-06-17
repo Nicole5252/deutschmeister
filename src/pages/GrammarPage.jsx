@@ -515,7 +515,7 @@ function BookmarksModal({ bookmarks, onClose, onDelete, t }) {
                   <div key={item.id} className="card bookmark-item-card" style={{ padding: '16px', border: '1px solid var(--glass-border)', background: 'rgba(255, 255, 255, 0.02)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', gap: '12px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                        <span className="topic-chip" style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                        <span className="topic-chip" style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'var(--accent-interactive-bg)', color: 'var(--accent-primary)', border: '1px solid var(--accent-interactive-border)' }}>
                           {item.topicName}
                         </span>
                         <span className="topic-chip" style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)' }}>
@@ -703,7 +703,7 @@ export default function GrammarPage() {
             style={{ cursor: 'pointer' }}
           >
             <div className="topic-card-header">
-              <div className="topic-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)' }}>
+              <div className="topic-icon" style={{ background: 'var(--accent-interactive-bg-strong)', color: 'var(--accent-primary)' }}>
                 <Bookmark size={18} fill="currentColor" />
               </div>
             </div>

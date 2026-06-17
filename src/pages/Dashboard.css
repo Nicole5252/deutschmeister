@@ -6,8 +6,8 @@
 }
 
 .dashboard-hero {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.12) 0%, rgba(167, 139, 250, 0.08) 100%);
-  border-color: rgba(129, 140, 248, 0.2);
+  background: var(--glass-bg);
+  border-color: var(--glass-border-strong);
   padding: var(--space-8);
 }
 
@@ -117,7 +117,7 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: rgba(129, 140, 248, 0.15);
+  background: var(--accent-interactive-bg-strong);
   color: var(--accent-primary);
   display: flex;
   align-items: center;

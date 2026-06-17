@@ -15,9 +15,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.4);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px var(--accent-interactive-glow);
   flex-shrink: 0;
+}
+
+[data-theme="light"] .logo-icon {
+  color: #ffffff;
 }
 
 .logo-text {
@@ -69,10 +73,10 @@
 }
 
 .sidebar-nav-item.active {
-  background: rgba(129, 140, 248, 0.15);
+  background: var(--accent-interactive-bg-strong);
   color: var(--accent-primary);
-  border-color: rgba(129, 140, 248, 0.25);
-  box-shadow: 0 0 12px rgba(129, 140, 248, 0.1);
+  border-color: var(--accent-interactive-border-strong);
+  box-shadow: 0 0 12px var(--accent-interactive-glow);
 }
 
 .sidebar-footer {
@@ -118,7 +122,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: rgba(13, 13, 26, 0.9);
+  background: rgba(10, 10, 10, 0.92);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--glass-border);
 }
@@ -131,7 +135,7 @@
   height: 64px;
   z-index: 100;
   display: flex;
-  background: rgba(13, 13, 26, 0.92);
+  background: rgba(10, 10, 10, 0.94);
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--glass-border);
 }

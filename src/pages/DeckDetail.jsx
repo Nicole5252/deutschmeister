@@ -504,7 +504,7 @@ export default function DeckDetail() {
               disabled={sharing}
               title={deck?.isPublic ? '取消分享' : '分享至公共庫'}
               style={{
-                background: deck?.isPublic ? 'rgba(99, 102, 241, 0.15)' : undefined,
+                background: deck?.isPublic ? 'var(--accent-interactive-bg-strong)' : undefined,
                 borderColor: deck?.isPublic ? 'var(--accent-primary)' : undefined,
                 color: deck?.isPublic ? 'var(--accent-primary)' : undefined,
               }}

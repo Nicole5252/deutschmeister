@@ -81,8 +81,8 @@
   margin-bottom: var(--space-4);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(129, 140, 248, 0.2);
-  background: rgba(129, 140, 248, 0.03);
+  border: 1px solid var(--accent-interactive-border);
+  background: var(--accent-interactive-bg);
 }
 
 .synonyms-title {
@@ -197,11 +197,11 @@
 }
 
 .flip-card-front {
-  background: linear-gradient(135deg, rgba(129, 140, 248, 0.1) 0%, rgba(167, 139, 250, 0.06) 100%);
+  background: var(--glass-bg-hover);
 }
 
 .flip-card-back {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(45, 212, 191, 0.05) 100%);
+  background: var(--glass-bg-hover);
 }
 
 .card-face-content {
@@ -381,7 +381,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-  box-shadow: 0 0 8px var(--accent-primary);
+  background: var(--accent-primary);
+  box-shadow: none;
 }
 

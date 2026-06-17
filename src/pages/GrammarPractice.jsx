@@ -407,8 +407,8 @@ export default function GrammarPractice() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: isBookmarked ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.1)',
-              background: isBookmarked ? 'rgba(99, 102, 241, 0.15)' : 'var(--glass-bg)',
+              border: isBookmarked ? '1px solid var(--accent-primary)' : '1px solid var(--glass-border)',
+              background: isBookmarked ? 'var(--accent-interactive-bg-strong)' : 'var(--glass-bg)',
               color: isBookmarked ? 'var(--accent-primary)' : 'inherit'
             }}
             onClick={toggleBookmark}

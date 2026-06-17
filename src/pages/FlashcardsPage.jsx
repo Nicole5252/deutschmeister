@@ -520,7 +520,7 @@ export default function FlashcardsPage() {
                       {deck.isPublic ? <Globe size={20} /> : <BookOpen size={20} />}
                     </div>
                     {deck.isPublic && (
-                      <span className="badge badge-primary" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                      <span className="badge badge-primary" style={{ background: 'var(--accent-interactive-bg)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid var(--accent-interactive-border)' }}>
                         已分享
                       </span>
                     )}
@@ -593,7 +593,7 @@ export default function FlashcardsPage() {
                   <div className="deck-icon">
                     <Globe size={20} />
                   </div>
-                  <span className="badge badge-primary" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                  <span className="badge badge-primary" style={{ background: 'var(--accent-interactive-bg)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid var(--accent-interactive-border)' }}>
                     共享資源
                   </span>
                 </div>
