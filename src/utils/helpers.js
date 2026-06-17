@@ -145,6 +145,87 @@ function extractJSONFromString(text) {
   return text.slice(startIdx, lastIdx + 1);
 }
 
+// Robust JSON parser that supports extracting JSON arrays, objects, or parsing consecutive JSON objects (fallback for LLM formatting quirks)
+function robustParseJSON(text, arrayWrapKey = null) {
+  // First, try standard extraction and parsing of the matched JSON block
+  try {
+    const jsonStr = extractJSONFromString(text);
+    let parsed = JSON.parse(jsonStr);
+    if (Array.isArray(parsed) && arrayWrapKey) {
+      return { [arrayWrapKey]: parsed };
+    }
+    return parsed;
+  } catch (e) {
+    // If standard parsing fails, fall back to consecutive brace-matching parser
+    console.warn('[robustParseJSON] Standard JSON parsing failed, falling back to brace-matching parser...', e);
+  }
+
+  const parsedObjects = [];
+  let braceCount = 0;
+  let inString = false;
+  let startIdx = -1;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    // Ignore braces inside strings
+    if (char === '"' && text[i - 1] !== '\\') {
+      inString = !inString;
+    }
+
+    if (!inString) {
+      if (char === '{') {
+        if (braceCount === 0) {
+          startIdx = i;
+        }
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0 && startIdx !== -1) {
+          const jsonStr = text.slice(startIdx, i + 1);
+          try {
+            const parsed = JSON.parse(jsonStr);
+            parsedObjects.push(parsed);
+          } catch (err) {
+            // Ignore malformed chunks
+          }
+          startIdx = -1;
+        }
+      }
+    }
+  }
+
+  if (parsedObjects.length > 0) {
+    // 1. If we are looking for a wrapper with arrayWrapKey (e.g. "questions" or "words")
+    if (arrayWrapKey) {
+      const wrapper = parsedObjects.find(obj => obj && Array.isArray(obj[arrayWrapKey]));
+      if (wrapper) {
+        return wrapper;
+      }
+
+      // If no wrapper was found but we parsed multiple question or word objects, wrap them
+      const isWordObj = obj => obj && (obj.german || obj.chinese);
+      const isQuestionObj = obj => obj && (obj.question || obj.type);
+      
+      let filtered = parsedObjects;
+      if (arrayWrapKey === 'questions') {
+        filtered = parsedObjects.filter(isQuestionObj);
+      } else if (arrayWrapKey === 'words') {
+        filtered = parsedObjects.filter(isWordObj);
+      }
+      
+      if (filtered.length > 0) {
+        return { [arrayWrapKey]: filtered };
+      }
+    }
+
+    // 2. Otherwise return the first parsed object
+    return parsedObjects[0];
+  }
+
+  throw new Error('無法從 AI 回傳內容中解析出任何有效的 JSON 格式');
+}
+
 // AI API call to Google Gemini with automatic retry and model fallback mechanism
 export async function callGemini(apiKey, contents, model = 'gemini-2.5-flash') {
   const fallbackModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-1.5-flash'];
@@ -317,8 +398,7 @@ export async function extractWordsFromImage(apiKeys, imageBase64, mimeType = 'im
   
   // Parse JSON
   try {
-    const jsonStr = extractJSONFromString(result);
-    return JSON.parse(jsonStr);
+    return robustParseJSON(result, 'words');
   } catch (err) {
     throw new Error('影像單字辨識失敗：' + err.message);
   }
@@ -441,12 +521,7 @@ ${vocabInstruction}
   }
   
   try {
-    const jsonStr = extractJSONFromString(result);
-    let parsed = JSON.parse(jsonStr);
-    if (Array.isArray(parsed)) {
-      parsed = { questions: parsed };
-    }
-    return parsed;
+    return robustParseJSON(result, 'questions');
   } catch (err) {
     throw new Error('文法出題解析失敗：' + err.message);
   }
@@ -533,8 +608,7 @@ export async function extractGrammarFromImage(apiKeys, imageBase64, mimeType = '
   }
 
   try {
-    const jsonStr = extractJSONFromString(result);
-    return JSON.parse(jsonStr);
+    return robustParseJSON(result, 'questions');
   } catch (err) {
     throw new Error('影像文法解析失敗：' + err.message);
   }
@@ -658,12 +732,7 @@ ${vocabInstruction}
   }
 
   try {
-    const jsonStr = extractJSONFromString(result);
-    let parsed = JSON.parse(jsonStr);
-    if (Array.isArray(parsed)) {
-      parsed = { questions: parsed };
-    }
-    return parsed;
+    return robustParseJSON(result, 'questions');
   } catch (err) {
     throw new Error('混合出題解析失敗：' + err.message);
   }
@@ -711,8 +780,7 @@ export async function translateAndGenerate(apiKeys, text, inputLang) {
   }
 
   try {
-    const jsonStr = extractJSONFromString(result);
-    return JSON.parse(jsonStr);
+    return robustParseJSON(result);
   } catch (err) {
     throw new Error('AI 翻譯失敗：' + err.message);
   }
