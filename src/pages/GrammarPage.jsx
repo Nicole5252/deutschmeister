@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import {
   getGrammarTopics, saveGrammarTopic, deleteGrammarTopic,
-  saveGrammarQuestions, getGrammarQuestions, getCards
+  saveGrammarQuestions, getGrammarQuestions, getCards,
+  getBookmarkedGrammarQuestions, deleteBookmarkedGrammarQuestion
 } from '../utils/storage';
 import {
   generateGrammarQuestions, generateId,
@@ -12,7 +13,7 @@ import {
 } from '../utils/helpers';
 import {
   Plus, Brain, Trash2, ChevronRight, X, Loader,
-  AlertCircle, Sparkles, BookMarked, FileImage, FileText, Upload, CheckCircle, Check
+  AlertCircle, Sparkles, BookMarked, FileImage, FileText, Upload, CheckCircle, Check, Bookmark
 } from 'lucide-react';
 import './GrammarPage.css';
 
@@ -478,6 +479,148 @@ function GenerateModal({ topic, selectedTopics, onClose, onGenerated, t, apiKeys
   );
 }
 
+function BookmarksModal({ bookmarks, onClose, onDelete, t }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal animate-fade-in bookmarks-modal" style={{ maxWidth: '680px', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="modal-header">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Bookmark size={20} fill="var(--accent-primary)" style={{ color: 'var(--accent-primary)' }} />
+            我收藏的文法題目 ({bookmarks.length})
+          </h3>
+          <button className="btn btn-glass btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '20px 24px' }}>
+          {bookmarks.length === 0 ? (
+            <div className="text-center" style={{ padding: '40px 0' }}>
+              <Bookmark size={48} className="text-muted" style={{ margin: '0 auto 16px', opacity: 0.3 }} />
+              <p className="text-secondary" style={{ fontWeight: 600 }}>目前尚未收藏任何題目</p>
+              <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: 8 }}>
+                在進行文法練習時，點擊右上角的書籤按鈕即可將題目收藏至此。
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {bookmarks.map((item) => {
+                let answerText = '';
+                if (item.type === 'fillBlank') {
+                  answerText = Array.isArray(item.blanks) 
+                    ? item.blanks.join(' / ') 
+                    : (item.blank || item.correctAnswer || '');
+                } else if (item.type === 'sentence') {
+                  answerText = item.correctAnswer || '';
+                }
+
+                return (
+                  <div key={item.id} className="card bookmark-item-card" style={{ padding: '16px', border: '1px solid var(--glass-border)', background: 'rgba(255, 255, 255, 0.02)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                        <span className="topic-chip" style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                          {item.topicName}
+                        </span>
+                        <span className="topic-chip" style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)' }}>
+                          {item.type === 'multiple' ? '選擇題' : item.type === 'fillBlank' ? '填空題' : '造句題'}
+                        </span>
+                      </div>
+                      <button 
+                        className="btn btn-glass btn-icon btn-sm" 
+                        style={{ color: 'var(--danger)', padding: 0, width: 28, height: 28, minWidth: 28 }}
+                        onClick={() => onDelete(item.id)}
+                        title="刪除此收藏"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    <div className="bookmark-question-text" style={{ fontSize: '1.05rem', fontWeight: '600', marginBottom: '12px', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
+                      {item.question}
+                    </div>
+
+                    {item.type === 'multiple' && item.options && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                        {item.options.map((opt, idx) => {
+                          const isCorrect = idx === item.correctAnswer;
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                padding: '8px 12px', 
+                                borderRadius: 'var(--radius-md)', 
+                                border: isCorrect ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--glass-border)', 
+                                background: isCorrect ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.01)',
+                                color: isCorrect ? 'var(--success)' : 'var(--text-secondary)',
+                                fontSize: '0.9rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                            >
+                              <span 
+                                style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  width: 20, 
+                                  height: 20, 
+                                  borderRadius: '50%', 
+                                  background: isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  color: isCorrect ? 'var(--success)' : 'var(--text-muted)',
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                {String.fromCharCode(65 + idx)}
+                              </span>
+                              <span>{opt}</span>
+                              {isCorrect && <Check size={14} style={{ marginLeft: 'auto' }} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {(item.type === 'fillBlank' || item.type === 'sentence') && (
+                      <div 
+                        style={{ 
+                          padding: '10px 14px', 
+                          borderRadius: 'var(--radius-md)', 
+                          background: 'rgba(16, 185, 129, 0.05)', 
+                          border: '1px solid rgba(16, 185, 129, 0.2)',
+                          color: 'var(--success)',
+                          fontSize: '0.95rem',
+                          fontWeight: '600',
+                          marginBottom: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <CheckCircle size={14} />
+                        <span>{item.type === 'fillBlank' ? '答案：' : '正確順序：'}</span>
+                        <span>{answerText}</span>
+                      </div>
+                    )}
+
+                    {item.explanation && (
+                      <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-md)', background: 'rgba(255, 255, 255, 0.02)', borderLeft: '3px solid var(--accent-primary)' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent-primary)', marginBottom: '4px' }}>📖 文法解說</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{item.explanation}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-primary" onClick={onClose}>關閉</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function GrammarPage() {
   const { t, settings, showToast } = useApp();
@@ -486,9 +629,12 @@ export default function GrammarPage() {
   const [selectedTopicIds, setSelectedTopicIds] = useState([]);
   const [showCreate, setShowCreate] = useState(false);
   const [generateModalConfig, setGenerateModalConfig] = useState(null); // { topic, selectedTopics }
+  const [bookmarks, setBookmarks] = useState([]);
+  const [showBookmarksModal, setShowBookmarksModal] = useState(false);
 
   useEffect(() => {
     setUserTopics(getGrammarTopics());
+    setBookmarks(getBookmarkedGrammarQuestions());
   }, []);
 
   const allTopics = [...BUILT_IN_TOPICS, ...userTopics];
@@ -504,6 +650,13 @@ export default function GrammarPage() {
     deleteGrammarTopic(topicId);
     setUserTopics(getGrammarTopics());
     setSelectedTopicIds(prev => prev.filter(id => id !== topicId));
+  }
+
+  function handleDeleteBookmark(bookmarkId) {
+    if (!window.confirm('確定要取消收藏此題目嗎？')) return;
+    deleteBookmarkedGrammarQuestion(bookmarkId);
+    setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
+    showToast('❌ 已取消收藏該題目', 'info');
   }
 
   function handleGenerated(count, isRedirect = false) {
@@ -535,6 +688,47 @@ export default function GrammarPage() {
           <Plus size={16} />
           {t('grammar.newTopic')}
         </button>
+      </div>
+
+      {/* 個人收藏 */}
+      <div style={{ marginBottom: 'var(--space-6)' }}>
+        <h2 className="section-header">個人收藏</h2>
+        <div className="topics-grid">
+          <div
+            className="topic-card card bookmarks-card"
+            onClick={() => {
+              setBookmarks(getBookmarkedGrammarQuestions());
+              setShowBookmarksModal(true);
+            }}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="topic-card-header">
+              <div className="topic-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: 'var(--accent-primary)' }}>
+                <Bookmark size={18} fill="currentColor" />
+              </div>
+            </div>
+            <h3 className="topic-name">我收藏的文法題目</h3>
+            <p className="topic-desc text-secondary" style={{ minHeight: '40px' }}>
+              {bookmarks.length > 0 
+                ? `共收藏了 ${bookmarks.length} 道文法練習題。點擊以瀏覽、複習或管理。`
+                : '尚未收藏任何題目。在文法練習中點擊右上角的收藏按鈕，即可將題目儲存至此。'}
+            </p>
+            <div className="topic-footer" onClick={e => e.stopPropagation()}>
+              <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                {bookmarks.length > 0 ? `${bookmarks.length} 題已收藏` : '無收藏題目'}
+              </span>
+              <button
+                className="btn btn-glass btn-sm"
+                onClick={() => {
+                  setBookmarks(getBookmarkedGrammarQuestions());
+                  setShowBookmarksModal(true);
+                }}
+              >
+                瀏覽收藏題目 <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Built-in Topics */}
@@ -689,6 +883,14 @@ export default function GrammarPage() {
             </div>
           </div>
         </div>
+      )}
+      {showBookmarksModal && (
+        <BookmarksModal
+          bookmarks={bookmarks}
+          onClose={() => setShowBookmarksModal(false)}
+          onDelete={handleDeleteBookmark}
+          t={t}
+        />
       )}
     </div>
   );

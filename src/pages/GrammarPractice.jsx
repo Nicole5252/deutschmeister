@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../contexts/AppContext';
-import { getGrammarTopics, getGrammarQuestions } from '../utils/storage';
-import { ArrowLeft, Check, X, ChevronRight, Trophy, Home } from 'lucide-react';
+import { 
+  getGrammarTopics, getGrammarQuestions,
+  getBookmarkedGrammarQuestions, saveBookmarkedGrammarQuestion, deleteBookmarkedGrammarQuestion
+} from '../utils/storage';
+import { ArrowLeft, Check, X, ChevronRight, Trophy, Home, Bookmark } from 'lucide-react';
 import './GrammarPractice.css';
 
 function MultipleChoice({ question, onAnswer }) {
@@ -275,6 +278,29 @@ export default function GrammarPractice() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState({ correct: 0, total: 0 });
   const [finished, setFinished] = useState(false);
+  const [bookmarks, setBookmarks] = useState([]);
+
+  useEffect(() => {
+    setBookmarks(getBookmarkedGrammarQuestions());
+  }, []);
+
+  const currentQuestion = questions[currentIdx];
+  const isBookmarked = currentQuestion ? bookmarks.some(b => b.id === currentQuestion.id) : false;
+
+  function toggleBookmark() {
+    if (!currentQuestion) return;
+    if (isBookmarked) {
+      deleteBookmarkedGrammarQuestion(currentQuestion.id);
+      setBookmarks(prev => prev.filter(b => b.id !== currentQuestion.id));
+    } else {
+      const newBookmark = {
+        ...currentQuestion,
+        topicName: topic?.nameZh || topic?.name || '混合文法練習',
+      };
+      saveBookmarkedGrammarQuestion(newBookmark);
+      setBookmarks(prev => [...prev, newBookmark]);
+    }
+  }
 
   const BUILT_IN_NAMES = {
     'builtin-wechselpraepositionen': { name: 'Wechselpräpositionen', nameZh: '雙介系詞' },
@@ -370,10 +396,31 @@ export default function GrammarPractice() {
           </div>
           <div className="study-count text-secondary">{currentIdx + 1} / {questions.length}</div>
         </div>
-        <div className="score-chip">
-          <span style={{ color: 'var(--success)' }}>{score.correct}</span>
-          <span className="text-muted">/</span>
-          <span>{score.total}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            className={`btn btn-icon ${isBookmarked ? 'bookmarked-active' : 'btn-glass'}`}
+            style={{ 
+              borderRadius: '50%', 
+              width: 36, 
+              height: 36,
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: isBookmarked ? '1px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.1)',
+              background: isBookmarked ? 'rgba(99, 102, 241, 0.15)' : 'var(--glass-bg)',
+              color: isBookmarked ? 'var(--accent-primary)' : 'inherit'
+            }}
+            onClick={toggleBookmark}
+            title="收藏此題"
+          >
+            <Bookmark size={16} fill={isBookmarked ? 'currentColor' : 'none'} />
+          </button>
+          <div className="score-chip">
+            <span style={{ color: 'var(--success)' }}>{score.correct}</span>
+            <span className="text-muted">/</span>
+            <span>{score.total}</span>
+          </div>
         </div>
       </div>
 

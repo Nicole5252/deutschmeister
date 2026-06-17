@@ -251,3 +251,49 @@
   }
 }
 
+/* Bookmarks Card & Modal styles */
+.bookmarks-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%) !important;
+  border: 1px dashed var(--accent-primary) !important;
+  transition: all var(--transition-normal);
+}
+
+.bookmarks-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2) !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%) !important;
+}
+
+.bookmarks-modal .modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.bookmarks-modal .modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bookmarks-modal .modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bookmarks-modal .modal-body::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+}
+
+.bookmark-item-card {
+  transition: all var(--transition-fast);
+}
+
+.bookmark-item-card:hover {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.bookmark-question-text {
+  color: var(--text-primary);
+}
+

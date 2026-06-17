@@ -158,6 +158,7 @@ const STORAGE_KEYS = {
   CARDS: 'dm_cards',
   GRAMMAR_TOPICS: 'dm_grammar_topics',
   GRAMMAR_QUESTIONS: 'dm_grammar_questions',
+  BOOKMARKED_GRAMMAR_QUESTIONS: 'dm_bookmarked_grammar_questions',
   STUDY_LOG: 'dm_study_log',
   SETTINGS: 'dm_settings',
   STREAK: 'dm_streak',
@@ -322,6 +323,28 @@ export function saveGrammarQuestions(questions) {
   const topicId = questions[0]?.topicId;
   const filtered = topicId ? existing.filter(q => q.topicId !== topicId) : existing;
   set(STORAGE_KEYS.GRAMMAR_QUESTIONS, [...filtered, ...questions]);
+}
+
+// ---- Bookmarked Grammar Questions ----
+export function getBookmarkedGrammarQuestions() {
+  return get(STORAGE_KEYS.BOOKMARKED_GRAMMAR_QUESTIONS) || [];
+}
+
+export function saveBookmarkedGrammarQuestion(question) {
+  const bookmarks = getBookmarkedGrammarQuestions();
+  const idx = bookmarks.findIndex(q => q.id === question.id);
+  if (idx >= 0) {
+    bookmarks[idx] = { ...bookmarks[idx], ...question, bookmarkedAt: Date.now() };
+  } else {
+    bookmarks.push({ ...question, bookmarkedAt: Date.now() });
+  }
+  set(STORAGE_KEYS.BOOKMARKED_GRAMMAR_QUESTIONS, bookmarks);
+  return question;
+}
+
+export function deleteBookmarkedGrammarQuestion(questionId) {
+  const bookmarks = getBookmarkedGrammarQuestions().filter(q => q.id !== questionId);
+  set(STORAGE_KEYS.BOOKMARKED_GRAMMAR_QUESTIONS, bookmarks);
 }
 
 // ---- Study Log ----
