@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../contexts/AppContext';
-import { getDecks, getCards, saveCard, saveCards, deleteCard } from '../utils/storage';
+import { getDecks, saveDeck, getCards, saveCard, saveCards, deleteCard } from '../utils/storage';
 import { generateId, speak, formatNextReview, translateAndGenerate } from '../utils/helpers';
 import {
   ArrowLeft, Plus, Trash2, Edit3, Volume2, X, Check, Image, Upload, Sparkles, Loader,
