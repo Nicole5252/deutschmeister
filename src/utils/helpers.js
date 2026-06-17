@@ -117,6 +117,34 @@ function isFallbackableError(status, message) {
   return true;
 }
 
+// Helper to robustly extract JSON object or array string from AI response text
+function extractJSONFromString(text) {
+  const firstBrace = text.indexOf('{');
+  const firstBracket = text.indexOf('[');
+  
+  if (firstBrace === -1 && firstBracket === -1) {
+    throw new Error('AI 回傳內容不包含有效的 JSON 格式');
+  }
+  
+  let startIdx;
+  let endChar;
+  
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+    endChar = '}';
+  } else {
+    startIdx = firstBracket;
+    endChar = ']';
+  }
+  
+  const lastIdx = text.lastIndexOf(endChar);
+  if (lastIdx === -1 || lastIdx < startIdx) {
+    throw new Error('AI 回傳的 JSON 括號不對稱或不完整');
+  }
+  
+  return text.slice(startIdx, lastIdx + 1);
+}
+
 // AI API call to Google Gemini with automatic retry and model fallback mechanism
 export async function callGemini(apiKey, contents, model = 'gemini-2.5-flash') {
   const fallbackModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-1.5-flash'];
@@ -288,9 +316,12 @@ export async function extractWordsFromImage(apiKeys, imageBase64, mimeType = 'im
   }
   
   // Parse JSON
-  const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Invalid AI response format');
-  return JSON.parse(jsonMatch[0]);
+  try {
+    const jsonStr = extractJSONFromString(result);
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    throw new Error('影像單字辨識失敗：' + err.message);
+  }
 }
 
 // Generate grammar questions using AI (OpenAI or Gemini)
@@ -387,7 +418,14 @@ ${vocabInstruction}
 - 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
 - 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
-只回覆 JSON，不要其他文字。`;
+請回覆一個合法的 JSON 物件，格式必須如下：
+{
+  "questions": [
+    // 放入生成的 ${questionCount} 道練習題物件
+  ]
+}
+
+請只回覆上述的 JSON 物件，不要包含任何 markdown 標記（例如 \`\`\`json）或額外的說明文字。`;
 
   let result;
   if (mode === 'openai') {
@@ -402,9 +440,16 @@ ${vocabInstruction}
     result = await callGemini(key, contents, 'gemini-2.5-flash');
   }
   
-  const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('AI 回傳格式錯誤，請再試一次');
-  return JSON.parse(jsonMatch[0]);
+  try {
+    const jsonStr = extractJSONFromString(result);
+    let parsed = JSON.parse(jsonStr);
+    if (Array.isArray(parsed)) {
+      parsed = { questions: parsed };
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error('文法出題解析失敗：' + err.message);
+  }
 }
 
 // Extract grammar rules and generate questions from an image using AI (OpenAI or Gemini)
@@ -487,9 +532,12 @@ export async function extractGrammarFromImage(apiKeys, imageBase64, mimeType = '
     result = await callGemini(key, contents, 'gemini-3.5-flash');
   }
 
-  const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('AI 回傳格式錯誤，請再試一次');
-  return JSON.parse(jsonMatch[0]);
+  try {
+    const jsonStr = extractJSONFromString(result);
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    throw new Error('影像文法解析失敗：' + err.message);
+  }
 }
 
 // Generate mixed grammar questions based on selected topics with strict A1 vocabulary/syntax constraints
@@ -587,7 +635,14 @@ ${vocabInstruction}
 - 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
 - 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
-只回覆 JSON，不要其他文字。`;
+請回覆一個合法的 JSON 物件，格式必須如下：
+{
+  "questions": [
+    // 放入生成的 ${questionCount} 道練習題物件
+  ]
+}
+
+請只回覆上述的 JSON 物件，不要包含任何 markdown 標記（例如 \`\`\`json）或額外的說明文字。`;
 
   let result;
   if (mode === 'openai') {
@@ -602,9 +657,16 @@ ${vocabInstruction}
     result = await callGemini(key, contents, 'gemini-2.5-flash');
   }
 
-  const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Invalid AI response format');
-  return JSON.parse(jsonMatch[0]);
+  try {
+    const jsonStr = extractJSONFromString(result);
+    let parsed = JSON.parse(jsonStr);
+    if (Array.isArray(parsed)) {
+      parsed = { questions: parsed };
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error('混合出題解析失敗：' + err.message);
+  }
 }
 
 // Translate a word (German <-> Chinese), find synonyms, and generate an A1 example sentence
@@ -648,7 +710,10 @@ export async function translateAndGenerate(apiKeys, text, inputLang) {
     result = await callGemini(key, contents, 'gemini-2.5-flash');
   }
 
-  const jsonMatch = result.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('AI 翻譯失敗，請再試一次');
-  return JSON.parse(jsonMatch[0]);
+  try {
+    const jsonStr = extractJSONFromString(result);
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    throw new Error('AI 翻譯失敗：' + err.message);
+  }
 }
