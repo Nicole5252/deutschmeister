@@ -110,6 +110,16 @@
   --gradient-danger: #ff3b30;
   --gradient-warning: #ff9500;
 
+  --accent-primary: #000000;
+  --accent-secondary: #6e6e73;
+  --accent-blue: #000000;
+  --accent-teal: #1d1d1f;
+  --accent-gold: #000000;
+
+  --success: #248a3d; /* Rich green for light background contrast */
+  --danger: #c93b3b;  /* Rich red for light background contrast */
+  --warning: #b25e00; /* Rich orange/gold for light background contrast */
+
   --accent-interactive-bg: rgba(0, 0, 0, 0.05);
   --accent-interactive-bg-strong: rgba(0, 0, 0, 0.1);
   --accent-interactive-border: rgba(0, 0, 0, 0.1);

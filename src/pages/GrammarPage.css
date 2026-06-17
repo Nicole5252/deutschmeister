@@ -207,11 +207,15 @@
 
 .mixed-bar-badge {
   background: var(--gradient-primary);
-  color: white;
+  color: var(--bg-primary);
   padding: 2px 8px;
   font-size: var(--text-xs);
   font-weight: 700;
   border-radius: var(--radius-full);
+}
+
+[data-theme="light"] .mixed-bar-badge {
+  color: #ffffff;
 }
 
 .mixed-bar-text {
