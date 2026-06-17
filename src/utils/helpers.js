@@ -100,7 +100,7 @@ export function formatNextReview(timestamp) {
 }
 
 // AI API call to Google Gemini
-export async function callGemini(apiKey, contents, model = 'gemini-3.5-flash') {
+export async function callGemini(apiKey, contents, model = 'gemini-1.5-flash') {
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
@@ -141,7 +141,7 @@ function getAIModeAndKey(apiKeys) {
 }
 
 // AI API call to OpenAI
-export async function callOpenAI(apiKey, messages, model = 'gpt-4o') {
+export async function callOpenAI(apiKey, messages, model = 'gpt-4o-mini') {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -333,7 +333,7 @@ ${vocabInstruction}
         parts: [{ text: prompt }]
       }
     ];
-    result = await callGemini(key, contents, 'gemini-3.5-flash');
+    result = await callGemini(key, contents, 'gemini-1.5-flash');
   }
   
   const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -533,7 +533,7 @@ ${vocabInstruction}
         parts: [{ text: prompt }]
       }
     ];
-    result = await callGemini(key, contents, 'gemini-3.5-flash');
+    result = await callGemini(key, contents, 'gemini-1.5-flash');
   }
 
   const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -579,7 +579,7 @@ export async function translateAndGenerate(apiKeys, text, inputLang) {
         parts: [{ text: prompt }]
       }
     ];
-    result = await callGemini(key, contents, 'gemini-3.5-flash');
+    result = await callGemini(key, contents, 'gemini-1.5-flash');
   }
 
   const jsonMatch = result.match(/\{[\s\S]*\}/);
