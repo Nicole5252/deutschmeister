@@ -99,31 +99,97 @@ export function formatNextReview(timestamp) {
   return `${days} 天後`;
 }
 
-// AI API call to Google Gemini
+// Helper to check if the Gemini API error is fallbackable (not due to invalid/incorrect API keys)
+function isFallbackableError(status, message) {
+  const lowercaseMsg = (message || '').toLowerCase();
+  // If the error message clearly indicates API key issue, do not fallback
+  if (
+    lowercaseMsg.includes('api key') || 
+    lowercaseMsg.includes('invalid key') || 
+    lowercaseMsg.includes('unauthorized') || 
+    lowercaseMsg.includes('forbidden') || 
+    lowercaseMsg.includes('key not found') || 
+    status === 401 || 
+    status === 403
+  ) {
+    return false;
+  }
+  return true;
+}
+
+// AI API call to Google Gemini with automatic retry and model fallback mechanism
 export async function callGemini(apiKey, contents, model = 'gemini-2.5-flash') {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents,
-      generationConfig: {
-        responseMimeType: 'application/json',
+  const fallbackModels = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+  
+  // Create a unique list of models to try, starting with the requested one
+  const modelsToTry = [model, ...fallbackModels.filter(m => m !== model)];
+  
+  let lastError = null;
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const currentModel = modelsToTry[i];
+    
+    // Attempt up to 2 times for each model (initial attempt + 1 retry) for temporary errors
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`[Gemini API] Attempting model ${currentModel} (Attempt ${attempt}/2)`);
+        
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              responseMimeType: 'application/json',
+            }
+          }),
+        });
+
+        if (!response.ok) {
+          let errMsg = `Gemini API error: ${response.status}`;
+          let errStatus = response.status;
+          try {
+            const err = await response.json();
+            errMsg = err.error?.message || errMsg;
+          } catch (e) {
+            // response was not JSON
+          }
+          throw { status: errStatus, message: errMsg };
+        }
+
+        const data = await response.json();
+        if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
+          throw { status: 200, message: 'Gemini API 沒有回傳內容。請檢查 API Key 是否有效。' };
+        }
+        
+        return data.candidates[0].content.parts[0].text;
+
+      } catch (err) {
+        lastError = err;
+        const status = err.status || 500;
+        const msg = err.message || String(err);
+        
+        console.warn(`[Gemini API] Failed with model ${currentModel} on attempt ${attempt}: ${msg}`);
+        
+        // If it's a client authentication/API key issue, fail immediately to prevent looping
+        if (!isFallbackableError(status, msg)) {
+          throw new Error(msg);
+        }
+
+        // If it's the first attempt, wait 1.5 seconds and retry the same model
+        if (attempt === 1) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || `Gemini API error: ${response.status}`);
+    }
+    
+    console.warn(`[Gemini API] Model ${currentModel} failed both attempts. Trying next fallback model...`);
   }
 
-  const data = await response.json();
-  if (!data.candidates || data.candidates.length === 0 || !data.candidates[0].content) {
-    throw new Error('Gemini API 沒有回傳內容。請檢查 API Key 是否有效。');
-  }
-  return data.candidates[0].content.parts[0].text;
+  // If all models failed, throw the last error message
+  throw new Error(lastError?.message || 'Gemini API 呼叫失敗，所有備用模型均無法使用。');
 }
 
 // Helper to determine AI mode and key
