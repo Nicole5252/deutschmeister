@@ -322,19 +322,13 @@
 
 /* Shared and Public Deck Card visual distinction */
 .deck-card-shared {
-  border-color: rgba(99, 102, 241, 0.3) !important;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.03) 0%, rgba(18, 18, 31, 0.6) 100%) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2), inset 0 0 12px rgba(99, 102, 241, 0.05);
+  /* Keep standard card color */
 }
 
 .public-deck-card {
-  border-color: rgba(99, 102, 241, 0.2) !important;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.02) 0%, rgba(18, 18, 31, 0.6) 100%) !important;
   transition: all var(--transition-normal);
 }
 
 .public-deck-card:hover {
-  border-color: var(--accent-primary) !important;
-  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2) !important;
   transform: translateY(-4px);
 }

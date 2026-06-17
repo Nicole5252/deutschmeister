@@ -590,7 +590,7 @@ export default function FlashcardsPage() {
             {publicDecks.map(pubDeck => (
               <div key={pubDeck.id} className="deck-card card public-deck-card">
                 <div className="deck-card-header">
-                  <div className="deck-icon" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)' }}>
+                  <div className="deck-icon">
                     <Globe size={20} />
                   </div>
                   <span className="badge badge-primary" style={{ background: 'rgba(99, 102, 241, 0.12)', color: 'var(--accent-primary)', fontSize: '0.68rem', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
