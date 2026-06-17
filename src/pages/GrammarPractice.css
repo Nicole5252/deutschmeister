@@ -181,3 +181,27 @@
   border-color: var(--accent-primary);
   color: var(--accent-primary);
 }
+
+/* Inline Fill Blank Inputs */
+.fill-blank-inline-input {
+  display: inline-block;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.fill-blank-inline-input:focus {
+  border-color: var(--accent-primary);
+  background: var(--glass-bg-hover);
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.4);
+}
+
+.fill-blank-inline-input:disabled {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}

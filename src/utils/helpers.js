@@ -237,49 +237,77 @@ export async function generateGrammarQuestions(apiKeys, topic, description, ques
     sentence: '造句練習（給出單字，造出正確的德文句子）',
   };
 
-  const prompt = `你是一個德文文法教師。請根據以下文法主題生成 ${questionCount} 道練習題。
+  const prompt = `你是一個專業的德文文法教師。請根據以下文法主題，生成 ${questionCount} 道練習題。
 
 文法主題：${topic}
 說明：${description || '請根據主題自行判斷'}
-題型：${typeMap[type] || '選擇題'}
+要求題型形式：${typeMap[type] || '選擇題'}
 
-請以 JSON 格式回覆：
-{
-  "questions": [
-    {
-      "type": "multiple",
-      "question": "題目文字",
-      "options": ["選項A", "選項B", "選項C", "選項D"],
-      "correctAnswer": 0,
-      "explanation": "文法解說（請用繁體中文）"
-    }
-  ]
-}
+【出題與題型規範（極重要）】：
+你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須嚴格限制在德語 A1 程度。
 
-對於 fillBlank 類型：
-{
-  "questions": [
-    {
-      "type": "fillBlank",
-      "question": "Die Katze ___ (schlafen) auf dem Sofa.",
-      "blank": "schläft",
-      "hint": "提示",
-      "explanation": "文法解說"
-    }
-  ]
-}
+1. 題型 1：可分動詞與情態助動詞填空題 (Trennbare Verben & Modalverben)
+   - 格式：一個完整的德文句子，中間挖空兩個格子（用 "______" 表示）。句尾會括號給予動詞原形。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "______ du heute ______? (einkaufen)",
+       "blanks": ["Kaufst", "ein"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
+     或：
+     {
+       "type": "fillBlank",
+       "question": "Ich ______ heute nicht ______. (können, kommen)",
+       "blanks": ["kann", "kommen"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
 
-對於 sentence 類型：
-{
-  "questions": [
-    {
-      "type": "sentence",
-      "words": ["ich", "gehen", "heute", "Schule"],
-      "correctAnswer": "Ich gehe heute in die Schule.",
-      "explanation": "文法解說"
-    }
-  ]
-}
+2. 題型 2：祈使句/命令句改寫與填空題 (Imperativ)
+   - 格式：給予情境或一般陳述句，要求填入或選擇對應的 Imperativ 形式（含 du, ihr, Sie）。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "(du) ______ leise! (sein)",
+       "blank": "Sei",
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+3. 題型 3：雙介系詞與德文語格「二選一」或「填空題」 (Wechselpräpositionen: Akkusativ oder Dativ)
+   - 格式：根據動詞是動態（Wohin）還是靜態（Wo），決定要填入 Akkusativ 還是 Dativ 的冠詞/介系詞。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "Das Bild hängt an ______ Wand (f.). [提示：hängen是靜態]",
+       "blank": "der",
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+4. 題型 4：現在完成式造句與填空題 (Perfekt)
+   - 格式：給予現在式句子或單字碎片，判斷助動詞 (haben/sein) 並填入過去分詞 (Partizip II)。可以挖空兩個格子。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "提示：gestern / ich / nach Hause / gehen\\nIch ______ gestern nach Hause ______.",
+       "blanks": ["bin", "gegangen"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+5. 題型 5：情境問答與對話連線/填空題 (Situationen & Dialoge)
+   - 格式：給予生活對話情境或問題，選擇或填入最符合邏輯的回應。
+   - JSON 範例：
+     {
+       "type": "multiple",
+       "question": "情境：在商店中，店員問：'Was möchten Sie?'。以下哪個回答最合適？",
+       "options": ["Ich möchte ein Kilo Äpfel, bitte.", "Ich gehe nach Hause.", "Es tut mir leid.", "Ich bin müde."],
+       "correctAnswer": 0,
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+【格式調整要求】：
+- 如果「要求題型形式」是「選擇題（multiple）」，請將題目改為選擇題形式，提供 4 個 options，並指出正確的 correctAnswer（索引值 0-3）。
+- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
+- 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
 只回覆 JSON，不要其他文字。`;
 
@@ -398,55 +426,76 @@ export async function generateMixedGrammarQuestions(apiKeys, selectedTopics, que
 
   const topicListStr = selectedTopics.map(t => `${t.name} (${t.nameZh || ''})`).join(', ');
 
-  const prompt = `你是一個專業德文文法教師。請根據以下勾選的德文文法主題，生成 ${questionCount} 道練習題。
+  const prompt = `你是一個專業的德文文法教師。請根據以下勾選的德文文法主題，生成 ${questionCount} 道練習題。
 
-【重要出題規範】：
-1. 【單字與句型限制】：所有題目中出現的德文單字、片語及句型結構，必須「嚴格限制在 A1 的初級程度」以內。絕對不可出現 A2 或以上（例如 B1, B2）的高難度詞彙與語法結構。
-2. 【文法主題範圍】：題目「僅限於」以下使用者勾選的文法範圍：
-   ${topicListStr}
-3. 【題型限制】：全部生成為「${typeMap[type] || '選擇題'}」。
-4. 【隨機融合】：每道題目可以隨機決定是：
-   - 「專注在單一個」勾選的文法點（例如：只考 Akkusativ）
-   - 「融合多個」已勾選的文法點在同一個題目中（例如：在同一個句子中同時考動詞變位與 Dativ）
-5. 【解說語言】：所有的文法解說必須使用「繁體中文」，並且要詳細解釋該題考了哪些文法點，為什麼這個答案是正確的。
+文法主題範圍：${topicListStr}
+要求題型形式：${typeMap[type] || '選擇題'}
 
-請以 JSON 格式回覆：
-{
-  "questions": [
-    {
-      "type": "multiple",
-      "question": "題目文字",
-      "options": ["選項A", "選項B", "選項C", "選項D"],
-      "correctAnswer": 0,
-      "explanation": "文法解說（請說明考了哪些文法點以及詳細解析，使用繁體中文）"
-    }
-  ]
-}
+【出題與題型規範（極重要）】：
+你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須嚴格限制在德語 A1 程度。
 
-對於 fillBlank 類型：
-{
-  "questions": [
-    {
-      "type": "fillBlank",
-      "question": "題目句子，用 ___ 表示空格。例：Die Katze ___ (schlafen) auf dem Sofa.",
-      "blank": "正確答案答案值。例：schläft",
-      "hint": "提示",
-      "explanation": "文法解說"
-    }
-  ]
-}
+1. 題型 1：可分動詞與情態助動詞填空題 (Trennbare Verben & Modalverben)
+   - 格式：一個完整的德文句子，中間挖空兩個格子（用 "______" 表示）。句尾會括號給予動詞原形。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "______ du heute ______? (einkaufen)",
+       "blanks": ["Kaufst", "ein"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
+     或：
+     {
+       "type": "fillBlank",
+       "question": "Ich ______ heute nicht ______. (können, kommen)",
+       "blanks": ["kann", "kommen"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
 
-對於 sentence 類型：
-{
-  "questions": [
-    {
-      "type": "sentence",
-      "words": ["打散的單字陣列。例如：[\\\"ich\\\", \\\"gehen\\\", \\\"heute\\\", \\\"Schule\\\"]"],
-      "correctAnswer": "正確德文句子。例如：Ich gehe heute in die Schule.",
-      "explanation": "文法解說"
-    }
-  ]
-}
+2. 題型 2：祈使句/命令句改寫與填空題 (Imperativ)
+   - 格式：給予情境或一般陳述句，要求填入或選擇對應的 Imperativ 形式（含 du, ihr, Sie）。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "(du) ______ leise! (sein)",
+       "blank": "Sei",
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+3. 題型 3：雙介系詞與德文語格「二選一」或「填空題」 (Wechselpräpositionen: Akkusativ oder Dativ)
+   - 格式：根據動詞是動態（Wohin）還是靜態（Wo），決定要填入 Akkusativ 還是 Dativ 的冠詞/介系詞。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "Das Bild hängt an ______ Wand (f.). [提示：hängen是靜態]",
+       "blank": "der",
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+4. 題型 4：現在完成式造句與填空題 (Perfekt)
+   - 格式：給予現在式句子或單字碎片，判斷助動詞 (haben/sein) 並填入過去分詞 (Partizip II)。可以挖空兩個格子。
+   - JSON 範例：
+     {
+       "type": "fillBlank",
+       "question": "提示：gestern / ich / nach Hause / gehen\\nIch ______ gestern nach Hause ______.",
+       "blanks": ["bin", "gegangen"],
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+5. 題型 5：情境問答與對話連線/填空題 (Situationen & Dialoge)
+   - 格式：給予生活對話情境或問題，選擇或填入最符合邏輯的回應。
+   - JSON 範例：
+     {
+       "type": "multiple",
+       "question": "情境：在商店中，店員問：'Was möchten Sie?'。以下哪個回答最合適？",
+       "options": ["Ich möchte ein Kilo Äpfel, bitte.", "Ich gehen nach Hause.", "Es tut mir leid.", "Ich bin müde."],
+       "correctAnswer": 0,
+       "explanation": "文法說明（請用繁體中文）"
+     }
+
+【格式調整要求】：
+- 如果「要求題型形式」是「選擇題（multiple）」，請將題目改為選擇題形式，提供 4 個 options，並指出正確的 correctAnswer（索引值 0-3）。
+- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
+- 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
 只回覆 JSON，不要其他文字。`;
 
