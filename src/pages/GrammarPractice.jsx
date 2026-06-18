@@ -76,10 +76,8 @@ function FillBlank({ question, onAnswer }) {
   const [submitted, setSubmitted] = useState(false);
   const [showHint, setShowHint] = useState(false);
 
-  // Check if we have multiple blanks
   const isMultiBlank = Array.isArray(question.blanks) && question.blanks.length > 0;
   const targetBlanks = isMultiBlank ? question.blanks : [question.blank || question.correctAnswer || ''];
-
   const [answers, setAnswers] = useState(() => Array(targetBlanks.length).fill(''));
 
   const isCorrect = answers.every((ans, i) =>
@@ -94,14 +92,13 @@ function FillBlank({ question, onAnswer }) {
     });
   };
 
-  // Split question text by underscores (at least 3 underscores)
   const questionText = question.question || '';
   const parts = questionText.split(/_{3,}/);
+  const isInline = parts.length - 1 === targetBlanks.length;
 
   return (
     <div className="question-block">
-      {/* If it's multi-blank, render the inputs inline within the text! */}
-      {isMultiBlank && parts.length - 1 === targetBlanks.length ? (
+      {isInline ? (
         <h3 className="question-text" style={{ lineHeight: '2.8rem', display: 'flow-root' }}>
           {parts.map((part, index) => (
             <span key={index} style={{ verticalAlign: 'middle' }}>
@@ -129,34 +126,11 @@ function FillBlank({ question, onAnswer }) {
           ))}
         </h3>
       ) : (
-        <>
-          <h3 className="question-text">{question.question}</h3>
-          {question.hint && (
-            <div className="hint-section animate-fade-in" style={{ alignSelf: 'flex-start', margin: '-4px 0 4px' }}>
-              {showHint ? (
-                <p className="question-hint text-secondary">💡 提示：{question.hint}</p>
-              ) : (
-                <button className="btn btn-glass btn-sm" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setShowHint(true)}>
-                  💡 顯示提示
-                </button>
-              )}
-            </div>
-          )}
-          <input
-            className="input fill-blank-input"
-            value={answers[0] || ''}
-            onChange={e => handleUpdateAnswer(0, e.target.value)}
-            placeholder="輸入答案..."
-            disabled={submitted}
-            autoFocus
-            onKeyDown={e => { if (e.key === 'Enter' && !submitted && (answers[0] || '').trim()) setSubmitted(true); }}
-          />
-        </>
+        <h3 className="question-text">{question.question}</h3>
       )}
 
-      {/* Render hint section for multi-blank if present */}
-      {isMultiBlank && question.hint && (
-        <div className="hint-section animate-fade-in" style={{ alignSelf: 'flex-start', marginTop: '8px' }}>
+      {question.hint && (
+        <div className="hint-section animate-fade-in" style={{ alignSelf: 'flex-start', margin: '4px 0' }}>
           {showHint ? (
             <p className="question-hint text-secondary">💡 提示：{question.hint}</p>
           ) : (
@@ -165,6 +139,18 @@ function FillBlank({ question, onAnswer }) {
             </button>
           )}
         </div>
+      )}
+
+      {!isInline && (
+        <input
+          className="input fill-blank-input"
+          value={answers[0] || ''}
+          onChange={e => handleUpdateAnswer(0, e.target.value)}
+          placeholder="輸入答案..."
+          disabled={submitted}
+          autoFocus
+          onKeyDown={e => { if (e.key === 'Enter' && !submitted && (answers[0] || '').trim()) setSubmitted(true); }}
+        />
       )}
 
       {!submitted ? (
@@ -181,7 +167,7 @@ function FillBlank({ question, onAnswer }) {
             ? <div className="result-correct">✅ 正確！</div>
             : (
               <div className="result-incorrect">
-                ❌ 正確答案：<strong>{targetBlanks.join(' / ')}</strong>
+                ❌ 正確答案：<strong>{targetBlanks.join(', ')}</strong>
               </div>
             )
           }

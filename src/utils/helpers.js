@@ -442,6 +442,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "______ du heute ______? (einkaufen)",
        "blanks": ["Kaufst", "ein"],
+       "hint": "提示：填寫可分動詞 einkaufen 的現在式變位（注意第二人稱單數 du 的變位）",
        "explanation": "文法說明（請用繁體中文）"
      }
      或：
@@ -449,6 +450,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "Ich ______ heute nicht ______. (können, kommen)",
        "blanks": ["kann", "kommen"],
+       "hint": "提示：填寫情態助動詞 können 對應第一人稱 Ich 的變位，以及字尾的動詞原形 kommen",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -459,6 +461,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "(du) ______ leise! (sein)",
        "blank": "Sei",
+       "hint": "提示：動詞 sein 對應第二人稱單數 du 的祈使句型變位",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -467,8 +470,9 @@ ${vocabInstruction}
    - JSON 範例：
      {
        "type": "fillBlank",
-       "question": "Das Bild hängt an ______ Wand (f.). [提示：hängen是靜態]",
+       "question": "Das Bild hängt an ______ Wand (f.).",
        "blank": "der",
+       "hint": "提示：hängen 在此處表示掛著的「靜態」狀態 (Wo?)，介系詞 an 後方應搭配 Dativ（陰性單數冠詞）",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -479,6 +483,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "提示：gestern / ich / nach Hause / gehen\\nIch ______ gestern nach Hause ______.",
        "blanks": ["bin", "gegangen"],
+       "hint": "提示：現在完成式助動詞用 sein（與移動有關的動詞），字尾搭配 gehen 的過去分詞 Partizip II 形式",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -495,7 +500,7 @@ ${vocabInstruction}
 
 【格式調整要求】：
 - 如果「要求題型形式」是「選擇題（multiple）」，請將題目改為選擇題形式，提供 4 個 options，並指出正確的 correctAnswer（索引值 0-3）。
-- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
+- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。同時「務必額外出題提供 hint 欄位」，以繁體中文給予適當的提示（如動詞原形、格位線索或字意翻譯），以引導使用者。
 - 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
 請回覆一個合法的 JSON 物件，格式必須如下：
@@ -644,7 +649,7 @@ ${userVocabList.slice(0, 100).join(', ')}
 ${vocabInstruction}
 
 【出題與題型規範（極重要）】：
-你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須嚴格限制在德語 A1 程度。
+你生成的題目必須且只能屬於以下五大題型之一。所有題目中的德文單字、片語及句型必須逆格限制在德語 A1 程度。
 
 1. 題型 1：可分動詞與情態助動詞填空題 (Trennbare Verben & Modalverben)
    - 格式：一個完整的德文句子，中間挖空兩個格子（用 "______" 表示）。句尾會括號給予動詞原形。
@@ -653,6 +658,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "______ du heute ______? (einkaufen)",
        "blanks": ["Kaufst", "ein"],
+       "hint": "提示：填寫可分動詞 einkaufen 的現在式變位（注意第二人稱單數 du 的變位）",
        "explanation": "文法說明（請用繁體中文）"
      }
      或：
@@ -660,6 +666,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "Ich ______ heute nicht ______. (können, kommen)",
        "blanks": ["kann", "kommen"],
+       "hint": "提示：填寫情態助動詞 können 對應第一人稱 Ich 的變位，以及字尾的動詞原形 kommen",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -670,6 +677,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "(du) ______ leise! (sein)",
        "blank": "Sei",
+       "hint": "提示：動詞 sein 對應第二人稱單數 du 的祈使句型變位",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -678,8 +686,9 @@ ${vocabInstruction}
    - JSON 範例：
      {
        "type": "fillBlank",
-       "question": "Das Bild hängt an ______ Wand (f.). [提示：hängen是靜態]",
+       "question": "Das Bild hängt an ______ Wand (f.).",
        "blank": "der",
+       "hint": "提示：hängen 在此處表示掛著的「靜態」狀態 (Wo?)，介系詞 an 後方應搭配 Dativ（陰性單數冠詞）",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -690,6 +699,7 @@ ${vocabInstruction}
        "type": "fillBlank",
        "question": "提示：gestern / ich / nach Hause / gehen\\nIch ______ gestern nach Hause ______.",
        "blanks": ["bin", "gegangen"],
+       "hint": "提示：現在完成式助動詞用 sein（與移動有關 of 動詞），字尾搭配 gehen 的過去分詞 Partizip II 形式",
        "explanation": "文法說明（請用繁體中文）"
      }
 
@@ -706,7 +716,7 @@ ${vocabInstruction}
 
 【格式調整要求】：
 - 如果「要求題型形式」是「選擇題（multiple）」，請將題目改為選擇題形式，提供 4 個 options，並指出正確的 correctAnswer（索引值 0-3）。
-- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。
+- 如果「要求題型形式」是「填空題（fillBlank）」，請依上述挖空格式出題，單格填空使用 "blank" 欄位，雙格填空使用 "blanks" 陣列欄位。同時「務必額外出題提供 hint 欄位」，以繁體中文給予適當的提示（如動詞原形、格位線索或字意翻譯），以引導使用者。
 - 如果「要求題型形式」是「造句練習（sentence）」，請將題目設定為 "type": "sentence"，提供單字碎片陣列 "words" 及正確句子 "correctAnswer"，例如考 Imperativ 或 Perfekt 的造句排順序。
 
 請回覆一個合法的 JSON 物件，格式必須如下：
